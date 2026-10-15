@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="185" height="36" viewBox="0 0 185 36" role="img" aria-label="Local, no auto-upload">
+  <rect x=".5" y=".5" width="184" height="35" rx="8" fill="#12242a" stroke="#37535a"/>
+  <path d="M15 16V13A4 4 0 0 1 23 13V16M14 16H24V25H14Z" fill="none" stroke="#68e8ce" stroke-width="1.5" stroke-linejoin="round"/>
+  <text x="35" y="23" fill="#e5f1f1" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600">Local · no auto-upload</text>
+</svg>

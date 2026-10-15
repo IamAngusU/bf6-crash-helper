@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="182" height="36" viewBox="0 0 182 36" role="img" aria-label="Cache backup and undo">
+  <rect x=".5" y=".5" width="181" height="35" rx="8" fill="#12242a" stroke="#37535a"/>
+  <path d="M15 13L11 17L15 21M12 17H20A5 5 0 1 1 20 27" fill="none" stroke="#68e8ce" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="33" y="23" fill="#e5f1f1" font-family="Segoe UI,Arial,sans-serif" font-size="12" font-weight="600">Cache backup + undo</text>
+</svg>

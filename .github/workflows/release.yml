@@ -1,0 +1,32 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build and test the tagged source
+        shell: powershell
+        run: ./build.ps1 -Test
+      - name: Attest the release executable
+        uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
+        with:
+          subject-path: bin/BF6CrashHelper.exe
+      - name: Publish portable Windows download
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: powershell
+        run: |
+          gh release create $env:RELEASE_TAG bin/BF6CrashHelper.exe bin/SHA256SUMS.txt --verify-tag --title "BF6 Crash Helper $env:RELEASE_TAG" --notes-file .github/release-notes.md
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed.' }

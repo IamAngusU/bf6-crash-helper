@@ -1,0 +1,23 @@
+name: Check
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build and test without touching a game installation
+        shell: powershell
+        run: ./build.ps1 -Test
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: BF6CrashHelper-windows-x64
+          path: |
+            bin/BF6CrashHelper.exe
+            bin/SHA256SUMS.txt
+          retention-days: 7

@@ -1,0 +1,11 @@
+/bin/
+/work/
+/reports/
+*.dmp
+*.mdmp
+*.etl
+*.csv
+*.vdf
+*.acf
+*.user
+*.suo

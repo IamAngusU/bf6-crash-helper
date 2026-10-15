@@ -47,7 +47,7 @@ Rapid Royale gehört zum kostenlosen REDSEC. Battlefield 6 zu kaufen ist kein vo
 
 Melde nachvollziehbare Beobachtungen über [GitHub Issues](https://github.com/IamAngusU/bf6-crash-helper/issues). Hilfreich sind Spielversion, Karte/Modus, Ladephase und eine geprüfte Zusammenfassung. Rohe Dumps, Aufzeichnungen, Kontodaten und Spielprogramme bleiben privat. Absturzsignaturen gelten nur für passende Programmversionen; unbekannte Ergebnisse werden nicht als bestätigter Fehler ausgegeben.
 
-Die Entwickler-Bauanleitung steht im Build-Skript des Repositorys. Zum Benutzen reicht die Release-Datei.
+Entwickler können die lokalen Prüfungen unter Windows mit `./build.ps1 -Test` wiederholen. Die Tests nutzen künstliche Absturzdateien und temporäre Cache-Ordner. Sie verändern keine echte Spielinstallation und starten keine ETW-Aufnahme. Zum Benutzen reicht die Release-Datei.
 
 ---
 

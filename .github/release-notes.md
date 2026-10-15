@@ -4,6 +4,6 @@ This first release offers local crash/installation checks, a previewable sanitiz
 
 **The investigated Rapid Royale crash is not fixed by this release.** It is not a licence bypass or a game patch. The tool helps distinguish verified file integrity, matching crash evidence and unresolved hypotheses.
 
-The executable is unsigned. Review the source and SHA256SUMS.txt. GitHub build provenance is attached to the release executable. Keep Windows protection enabled.
+The executable is unsigned. Review the source and SHA256SUMS.txt. When built by the release workflow, the executable also has GitHub build provenance; check each release's verification note. Keep Windows protection enabled.
 
 [Documentation](https://github.com/IamAngusU/bf6-crash-helper/tree/main/docs) · [Deutsch](https://github.com/IamAngusU/bf6-crash-helper/blob/main/README.de.md) · Author [IamAngusU](https://github.com/IamAngusU)

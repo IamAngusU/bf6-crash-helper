@@ -21,7 +21,7 @@ Battlefield closes while you join a round. BF6 Crash Helper helps you collect us
 3. Read the scan explanation, tick its consent box and click **Run check**. Opening the app does not scan or change your PC.
 4. Review the results. Export a report only when you choose to save one.
 
-For Windows 10/11 with .NET Framework 4.8 available. No separate runtime is needed on a current supported Windows installation. The release executable is unsigned: if Windows shows SmartScreen, review the publisher/source and file before deciding whether to open it. Keep Windows protection enabled.
+For Windows 10/11 (x64) with .NET Framework 4.8 available. No separate runtime is needed on a current supported Windows installation. The release executable is unsigned: if Windows shows SmartScreen, review the publisher/source and file before deciding whether to open it. Keep Windows protection enabled.
 
 Ordinary scans run without administrator rights. The optional Windows file trace has its own explanation, confirmation and administrator prompt.
 
@@ -47,7 +47,7 @@ Rapid Royale is part of free REDSEC. Buying Battlefield 6 is not a proposed fix.
 
 Report reproducible behavior through [GitHub Issues](https://github.com/IamAngusU/bf6-crash-helper/issues). Include the game build, map/mode, loading stage and a reviewed summary. Keep raw dumps, traces, account data and game binaries private. Existing crash signatures are specific to a binary version; an unknown result is useful and must stay unknown.
 
-Developer build instructions are in the repository build script. Players only need the release executable.
+Developers can reproduce the local checks on Windows with `./build.ps1 -Test`. The suite uses synthetic dumps and temporary cache fixtures; it does not change a real game installation or start an ETW recording. Players only need the release executable.
 
 ---
 

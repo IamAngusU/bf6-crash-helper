@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="350" viewBox="0 0 1200 350" role="img" aria-labelledby="title desc">
   <title id="title">BF6 Crash Helper</title>
-  <desc id="desc">An independent Windows diagnostic tool. Inspect the evidence. Choose each change. Keep a way back.</desc>
+  <desc id="desc">A reversible Rapid Royale workaround. Check compatibility, back up originals and keep a way back.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#101d24"/><stop offset="1" stop-color="#071115"/></linearGradient>
     <linearGradient id="accent"><stop stop-color="#68e8ce"/><stop offset="1" stop-color="#96f5e0"/></linearGradient>
@@ -13,7 +13,7 @@
   <text x="72" y="70" fill="#9ab7bc" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" letter-spacing="3">INDEPENDENT · LOCAL · WINDOWS</text>
   <text x="66" y="152" fill="#f0f8f8" font-family="Segoe UI,Arial,sans-serif" font-size="78" font-weight="750" letter-spacing="-4">BF6</text>
   <text x="233" y="151" fill="#f0f8f8" font-family="Segoe UI,Arial,sans-serif" font-size="58" font-weight="650" letter-spacing="-2">Crash Helper</text>
-  <text x="72" y="197" fill="#c2d3d5" font-family="Segoe UI,Arial,sans-serif" font-size="23">Inspect the evidence. Choose each change.</text>
+  <text x="72" y="197" fill="#c2d3d5" font-family="Segoe UI,Arial,sans-serif" font-size="23">Check compatibility. Back up the originals.</text>
   <text x="72" y="229" fill="#c2d3d5" font-family="Segoe UI,Arial,sans-serif" font-size="23">Keep a way back.</text>
   <g transform="translate(940 72)" fill="none" stroke="#68e8ce" stroke-width="3">
     <rect width="156" height="142" rx="14" stroke-opacity=".35"/>
@@ -23,7 +23,7 @@
   </g>
   <path d="M72 269H1128" stroke="#385058" stroke-opacity=".7"/>
   <g fill="#b8cdcf" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="600">
-    <text x="72" y="307">READ-ONLY SCAN</text><text x="333" y="307">OPT-IN CACHE TEST</text><text x="633" y="307">MANUAL REPORT EXPORT</text>
+    <text x="72" y="307">VERIFIED BUILD</text><text x="333" y="307">BACK UP BEFORE CHANGE</text><text x="633" y="307">UNDO AND RECOVERY</text>
   </g>
   <g fill="#68e8ce"><circle cx="309" cy="302" r="3"/><circle cx="609" cy="302" r="3"/></g>
 </svg>

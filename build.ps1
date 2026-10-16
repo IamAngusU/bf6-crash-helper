@@ -5,7 +5,7 @@ $bfCompiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.ex
 if (-not (Test-Path -LiteralPath $bfCompiler)) { throw 'The Windows .NET Framework C# compiler is not available. Build on Windows with .NET Framework 4.8.' }
 $bfBin = Join-Path $bfRoot 'bin'
 New-Item -ItemType Directory -Path $bfBin -Force | Out-Null
-$bfSources = @(Get-ChildItem -LiteralPath (Join-Path $bfRoot 'src') -Filter '*.cs' -File | ForEach-Object FullName)
+$bfSources = @('Program.cs','CompactForm.cs','SteamInstallation.cs','MirakPaths.cs','MirakRecovery.cs','MirakWorker.cs') | ForEach-Object { Join-Path (Join-Path $bfRoot 'src') $_ }
 $bfReferences = @('System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.Web.Extensions.dll')
 $bfFlags = @('/nologo','/langversion:5','/codepage:65001','/optimize+','/warn:4','/warnaserror+','/platform:x64')
 $bfFlags += @($bfReferences | ForEach-Object { '/reference:' + $_ })

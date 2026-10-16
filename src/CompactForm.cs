@@ -10,6 +10,7 @@ namespace Bf6CrashHelper
 {
     internal static class UiLanguage
     {
+        internal static string Text(string german, string english) { return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "de" ? german : english; }
         internal static void Set(bool german)
         {
             var culture = CultureInfo.GetCultureInfo(german ? "de-DE" : "en-US");
@@ -18,8 +19,7 @@ namespace Bf6CrashHelper
         }
     }
 
-    // A compact front door. All mutations still go through the reviewed recovery
-    // engine and the same one-time, elevated worker as the detailed tools.
+    // This surface exposes only the two-file workaround and its recovery.
     public sealed class MainForm : Form
     {
         const string Repository = "https://github.com/IamAngusU/bf6-crash-helper";
@@ -32,17 +32,19 @@ namespace Bf6CrashHelper
         readonly Panel statusBox = new Panel(), folderRow = new Panel(), actions = new Panel();
         readonly Button browse = new Button(), mirakCheck = new Button(), mirakApply = new Button(), mirakUndo = new Button();
         readonly CheckBox mirakConsent = new CheckBox(), mirakUndoConsent = new CheckBox();
-        readonly LinkLabel details = new LinkLabel(), source = new LinkLabel(), backups = new LinkLabel(), folder = new LinkLabel(), tools = new LinkLabel(), author = new LinkLabel();
+        readonly LinkLabel details = new LinkLabel(), source = new LinkLabel(), backups = new LinkLabel(), folder = new LinkLabel(), author = new LinkLabel();
         readonly ProgressBar progress = new ProgressBar();
-        readonly MirakRecovery mirak = new MirakRecovery();
+        readonly MirakRecovery mirak;
         MirakPlan mirakPlan;
         bool german, busy;
         string notice, failure;
         int noticeKind;
 
         string L(string de, string en) { return german ? de : en; }
-        public MainForm()
+        public MainForm() : this(new MirakRecovery()) { }
+        internal MainForm(MirakRecovery engine)
         {
+            mirak = engine;
             UiLanguage.Set(false);
             Text = "BF6 Crash Helper";
             ClientSize = new Size(548, 650); MinimumSize = new Size(540, 600);
@@ -78,7 +80,7 @@ namespace Bf6CrashHelper
 
             statusBox.BackColor = Color.FromArgb(238, 242, 245); statusBox.Height = 95; statusBox.Margin = new Padding(0, 0, 0, 12);
             statusTitle.Font = new Font(Font, FontStyle.Bold); statusTitle.Location = new Point(12, 10); statusTitle.Height = 23; statusBox.Controls.Add(statusTitle);
-            statusDetail.ForeColor = muted; statusDetail.Location = new Point(12, 35); statusDetail.Height = 47; statusBox.Controls.Add(statusDetail); body.Controls.Add(statusBox);
+            statusDetail.ForeColor = muted; statusDetail.Location = new Point(12, 35); statusDetail.Height = 47; statusDetail.AutoEllipsis = true; statusBox.Controls.Add(statusDetail); body.Controls.Add(statusBox);
             Block(scope, 61); scope.ForeColor = muted;
 
             actions.Height = 125; actions.Margin = new Padding(0, 0, 0, 4); body.Controls.Add(actions);
@@ -95,20 +97,20 @@ namespace Bf6CrashHelper
 
             var linkRow = new FlowLayoutPanel { Height = 31, WrapContents = true, Margin = Padding.Empty };
             ConfigureLink(details, delegate { ShowDetails(); }); ConfigureLink(backups, delegate { OpenBackups(); });
-            ConfigureLink(source, delegate { Open(Repository + "/tree/v0.3.0"); });
+            ConfigureLink(source, delegate { Open(Repository + "/tree/v0.4.0"); });
             ConfigureLink(folder, delegate { ChooseFolder(); });
             linkRow.Controls.Add(details); linkRow.Controls.Add(backups); linkRow.Controls.Add(source); linkRow.Controls.Add(folder); body.Controls.Add(linkRow);
 
             var footer = new Panel { Dock = DockStyle.Fill, Margin = Padding.Empty };
             progress.Location = new Point(0, 0); progress.Height = 3; progress.Style = ProgressBarStyle.Marquee; progress.Visible = false; footer.Controls.Add(progress);
             footerNote.Location = new Point(0, 10); footerNote.Height = 23; footerNote.ForeColor = muted; footer.Controls.Add(footerNote);
-            ConfigureLink(author, delegate { Open(Repository); }); author.Text = "IamAngusU"; author.Location = new Point(0, 39); footer.Controls.Add(author);
-            ConfigureLink(tools, delegate { ShowTools(); }); tools.Anchor = AnchorStyles.Top | AnchorStyles.Right; footer.Controls.Add(tools);
-            footer.Resize += delegate { footerNote.Width = progress.Width = footer.ClientSize.Width; tools.Location = new Point(footer.ClientSize.Width - tools.PreferredWidth, 39); };
+            ConfigureLink(author, delegate { Open(Repository); }); author.Text = "Powered by IamAngusU"; author.Location = new Point(0, 39); footer.Controls.Add(author);
+            footer.Resize += delegate { footerNote.Width = progress.Width = footer.ClientSize.Width; };
             shell.Controls.Add(footer, 0, 2);
             body.ClientSizeChanged += delegate { SizeContent(); };
             FormClosing += delegate(object sender, FormClosingEventArgs e) { if (busy) { e.Cancel = true; noticeKind = 5; RenderLanguage(); } };
             RenderLanguage(); RefreshLocalHistory(); SizeContent();
+            Shown += async delegate { if (mirakPlan != null && !String.IsNullOrEmpty(mirakPlan.TransactionId)) await CheckCompatibility(); };
         }
 
         void Block(Label label, int height) { label.Height = height; label.Margin = new Padding(0, 0, 0, 0); body.Controls.Add(label); }
@@ -148,21 +150,20 @@ namespace Bf6CrashHelper
             folderLabel.Text = L("Steam-Spielordner · leer lassen für automatische Suche", "Steam game folder · leave empty to detect automatically");
             gamePath.AccessibleName = L("Steam-Spielordner", "Steam game folder"); browse.Text = L("Wählen …", "Browse …");
             mirakCheck.Text = busy ? L("Bitte warten …", "Please wait …") : L("Kompatibilität prüfen", "Check compatibility");
-            bool undoMode = mirakPlan != null && mirakPlan.CanUndo;
+            bool undoMode = RecoveryMode;
             scope.Text = undoMode
                 ? L("Rückgängig prüft die Sicherungen und stellt die Originale wieder her. Neuere oder geänderte Dateien werden nicht überschrieben. BF6 muss geschlossen sein.", "Undo checks the backups and restores the originals. Newer or changed files are never overwritten. BF6 must be closed.")
                 : L("Sichert genau zwei optionale Mirak-Indexdateien und nimmt sie aus dem Ladepfad. Die Basiskarte bleibt erhalten. BF6 muss geschlossen sein.", "Backs up exactly two optional Mirak index files, then removes them from the loading path. The base map is kept. BF6 must be closed.");
             mirakConsent.Text = L("Ich möchte diesen Versuch mit geprüfter Sicherung anwenden und die Windows-Administratorabfrage öffnen.", "I want to apply this experiment with verified backups and open the Windows administrator prompt.");
             mirakUndoConsent.Text = L("Ich möchte die gespeicherte Änderung rückgängig machen und die Windows-Administratorabfrage öffnen.", "I want to undo the saved change and open the Windows administrator prompt.");
             mirakApply.Text = L("Sichern und Workaround anwenden", "Back up and apply workaround");
-            mirakUndo.Text = L("Workaround rückgängig machen", "Undo workaround");
+            mirakUndo.Text = mirakPlan != null && (mirakPlan.Status == "OriginalsPresent" || mirakPlan.Status == "UpdatedFilesPresent") ? L("Wiederherstellung abschließen", "Finish recovery") : L("Workaround rückgängig machen", "Undo workaround");
             mirakConsent.Visible = mirakApply.Visible = !undoMode;
             mirakUndoConsent.Visible = mirakUndo.Visible = undoMode;
             actionNote.Text = L("Sicherungen bleiben für Rückgängig erhalten.", "Backups are kept so you can undo the change.");
-            details.Text = L("Details", "Details"); backups.Text = L("Sicherungen", "Backups"); source.Text = L("Quellcode", "Review source"); folder.Text = L("Spielordner …", "Game folder …"); tools.Text = L("Weitere Werkzeuge", "More tools");
-            footerNote.Text = L("v0.3.0 · Lokal. Kein automatischer Upload.", "v0.3.0 · Local. No automatic uploads.");
-            if (tools.Parent != null) tools.Location = new Point(Math.Max(0, tools.Parent.ClientSize.Width - tools.PreferredWidth), 39);
-            if (failure != null) { statusTitle.Text = L("Vorgang gestoppt", "Operation stopped"); statusDetail.Text = failure; }
+            details.Text = L("Details", "Details"); backups.Text = L("Sicherungen", "Backups"); source.Text = L("Quellcode", "Review source"); folder.Text = L("Spielordner …", "Game folder …");
+            footerNote.Text = L("v0.4.0 · Lokal. Kein automatischer Upload.", "v0.4.0 · Local. No automatic uploads.");
+            if (failure != null) { statusTitle.Text = L("Vorgang gestoppt", "Operation stopped"); statusDetail.Text = L("Die Prüfung oder Änderung konnte nicht abgeschlossen werden. Die vollständige Meldung steht unter Details.", "The check or change could not be completed. Open Details for the full message."); }
             else if (noticeKind != 0)
             {
                 statusTitle.Text = noticeKind == 1 ? L("Workaround angewendet", "Workaround applied") : noticeKind == 2 ? L("Originale wiederhergestellt", "Original files restored") : noticeKind == 3 ? L("Neuere Dateien behalten", "Newer files preserved") : noticeKind == 4 ? L("Wird geprüft", "Checking") : L("Vorgang läuft", "Operation in progress");
@@ -175,25 +176,38 @@ namespace Bf6CrashHelper
             }
             else
             {
-                statusTitle.Text = undoMode ? (mirakPlan.State == "Applied" ? L("Workaround ist aktiv", "Workaround is active") : L("Wiederherstellung verfügbar", "Recovery available")) : L("Für diesen Versuch geeignet", "Compatible with this experiment");
-                statusDetail.Text = undoMode ? L("Eine Änderung ist gespeichert. Du kannst sie hier rückgängig machen oder einen unterbrochenen Vorgang wiederherstellen.", "A change is recorded. You can undo it here or recover an interrupted operation.") : L("Steam-Build und Dateihashes stimmen überein. Lies den Umfang und bestätige erst dann das Anwenden.", "The Steam build and file hashes match. Read the scope, then choose whether to apply it.");
+                statusTitle.Text = mirakPlan.Status == "AppliedVerified" ? L("Workaround bereits angewendet", "Workaround already applied")
+                    : mirakPlan.Status == "OriginalsPresent" ? L("Originale bereits wiederhergestellt", "Original files already restored")
+                    : mirakPlan.Status == "UpdatedFilesPresent" ? L("Neuere Spieldateien erkannt", "Newer game files detected")
+                    : mirakPlan.Status == "RecoveryBlocked" ? L("Wiederherstellung blockiert", "Recovery blocked")
+                    : mirakPlan.Status == "UntrackedMissing" ? L("Dateien fehlen ohne bekannte Sicherung", "Files absent without known backups")
+                    : mirakPlan.Status == "RecoveryPending" ? L("Wiederherstellung verfügbar", "Recovery available")
+                    : undoMode ? L("Gespeicherte Änderung erkannt", "Saved change detected") : L("Für diesen Versuch geeignet", "Compatible with this experiment");
+                statusDetail.Text = mirakPlan.Status == "AppliedVerified" ? L("Vorgang, Sicherungen und aktueller Dateizustand geprüft. Es wird nichts doppelt angewendet. Rückgängig ist verfügbar.", "Record, backups and current file state checked. Nothing will be applied twice. Undo is available.")
+                    : mirakPlan.Status == "OriginalsPresent" ? L("Der Workaround ist nicht mehr aktiv. Wiederherstellung abschließen prüft die Originale und schließt den Vorgang.", "The workaround is no longer active. Finish recovery checks the originals and closes the record.")
+                    : mirakPlan.Status == "UpdatedFilesPresent" ? L("Aktuelle Dateien bleiben erhalten. Wiederherstellung abschließen fügt keine alten Dateien ein.", "Current files will be kept. Finish recovery does not insert old files.")
+                    : mirakPlan.Status == "UntrackedMissing" ? L("Ein früherer Workaround ist möglich, aber nicht belegt. Kein erneutes Anwenden. Vorhandene Backups behalten; Details lesen.", "An earlier workaround is possible, not established. Apply stays disabled. Keep existing backups; read Details.")
+                    : mirakPlan.Status == "RecoveryBlocked" ? L("Aktueller Build, Dateien oder Sicherungen konnten nicht bestätigt werden. Alles bleibt erhalten. Details lesen.", "The current build, files or backups could not be verified. Everything is preserved. Read Details.")
+                    : mirakPlan.Status == "RecoveryPending" ? L("Ein unterbrochener Vorgang wurde erkannt. Originale und benötigte Sicherungen sind geprüft; Rückgängig kann fortsetzen.", "An interrupted operation was detected. Originals and required backups are checked; Undo can resume recovery.")
+                    : undoMode ? L("Der aktuelle Zustand wird geprüft. Vor einer bestätigten Prüfung bleibt Rückgängig gesperrt.", "Checking the current state. Undo stays disabled until the check confirms recovery is available.") : L("Steam-Build und Dateihashes stimmen überein. Lies den Umfang und bestätige erst dann das Anwenden.", "The Steam build and file hashes match. Read the scope, then choose whether to apply it.");
             }
             statusTitle.ForeColor = failure == null ? navy : Color.FromArgb(152, 63, 41);
             UpdateMirakButtons();
         }
         void UpdateMirakButtons()
         {
-            mirakCheck.Enabled = language.Enabled = tools.Enabled = !busy;
-            bool undoMode = mirakPlan != null && mirakPlan.CanUndo;
+            mirakCheck.Enabled = language.Enabled = !busy;
+            bool undoMode = RecoveryMode;
             gamePath.Enabled = browse.Enabled = folder.Enabled = !busy && !undoMode;
             mirakConsent.Enabled = !busy && mirakPlan != null && mirakPlan.CanApply;
-            mirakUndoConsent.Enabled = !busy && undoMode;
+            mirakUndoConsent.Enabled = !busy && undoMode && mirakPlan.CanUndo;
             mirakApply.Enabled = !busy && mirakConsent.Checked && mirakPlan != null && mirakPlan.CanApply;
-            mirakUndo.Enabled = !busy && mirakUndoConsent.Checked && undoMode;
+            mirakUndo.Enabled = !busy && mirakUndoConsent.Checked && undoMode && mirakPlan.CanUndo;
             mirakApply.BackColor = mirakApply.Enabled ? navy : Color.FromArgb(225, 231, 236);
             mirakApply.ForeColor = mirakApply.Enabled ? Color.White : muted;
             mirakApply.FlatAppearance.BorderColor = mirakApply.Enabled ? navy : Color.FromArgb(209, 218, 225);
         }
+        bool RecoveryMode { get { return mirakPlan != null && (mirakPlan.CanUndo || !String.IsNullOrEmpty(mirakPlan.TransactionId)); } }
         void SetBusy(bool value, string message)
         {
             busy = value; progress.Visible = value; if (message != null) notice = message;
@@ -201,13 +215,13 @@ namespace Bf6CrashHelper
         }
         void InvalidateReview()
         {
-            if (busy || (mirakPlan != null && mirakPlan.CanUndo)) return;
+            if (busy || RecoveryMode) return;
             mirakPlan = null; failure = null; noticeKind = 0;
             mirakConsent.Checked = mirakUndoConsent.Checked = false; RenderLanguage();
         }
         void RefreshLocalHistory()
         {
-            try { mirakPlan = mirak.Latest() == null ? null : mirak.Review(null); }
+            try { mirakPlan = mirak.Recorded(); }
             catch (Exception error) { mirakPlan = null; failure = error.Message; }
             RenderLanguage();
         }
@@ -237,11 +251,11 @@ namespace Bf6CrashHelper
                 notice = outcome.Message;
             }
             catch (Exception error) { noticeKind = 0; failure = error.Message; }
-            finally
-            {
-                mirakConsent.Checked = mirakUndoConsent.Checked = false; mirakPlan = null;
-                RefreshLocalHistory(); SetBusy(false, null);
-            }
+            mirakConsent.Checked = mirakUndoConsent.Checked = false; mirakPlan = null;
+            try { var recorded = mirak.Recorded(); mirakPlan = recorded == null ? null : await Task.Run(() => mirak.Review(null)); }
+            catch (Exception error) { failure = error.Message; }
+            if (mirakPlan != null) noticeKind = 0;
+            SetBusy(false, null);
         }
         void ShowDetails()
         {
@@ -258,10 +272,5 @@ namespace Bf6CrashHelper
         }
         void OpenBackups() { if (Directory.Exists(mirak.BackupRoot)) Open(mirak.BackupRoot); else { failure = L("Noch keine Sicherung vorhanden. Kompatibilität prüfen verändert keine Dateien.", "No backup exists yet. Checking compatibility does not change files."); RenderLanguage(); } }
         void Open(string target) { try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(target) { UseShellExecute = true }); } catch (Exception error) { failure = error.Message; RenderLanguage(); } }
-        void ShowTools()
-        {
-            using (var form = new ToolsForm()) form.ShowDialog(this);
-            mirakConsent.Checked = mirakUndoConsent.Checked = false; noticeKind = 0; failure = null; RefreshLocalHistory();
-        }
     }
 }

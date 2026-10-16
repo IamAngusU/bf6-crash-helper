@@ -1,12 +1,12 @@
 # Documentation
 
-Start with the [English quick start](../README.md#quick-start) or [deutsche Kurzanleitung](../README.de.md#loslegen).
+[English quick start](../README.md#quick-start) · [Deutsch](../README.de.md#loslegen)
 
-- [Privacy and reports](privacy.md): what stays private, what a shareable summary can establish, and the separate trace option.
-- [Cache test and recovery](recovery.md): backup, undo and interrupted operations.
-- [Rapid Royale workaround](rapid-workaround.md): experimental two-file scope, exact build guards, consent and rollback through failures/updates.
-- [Forum post draft](forum-post.md): English and German text with source-review invitation and no universal-fix claim.
-- [The Rapid Royale case](case-evidence.md): anonymized findings, exact version limits and source links.
-- [Deeper analysis](deeper-analysis.md): REA's practical role, Windows dump limits and what additional evidence could answer.
+- [Workaround and rollback](rapid-workaround.md): exact files, build guards, consent and failure/update behavior.
+- [Recognition and recovery](recovery.md): already-applied, restored, updated, partial and unknown states.
+- [Privacy](privacy.md): local-only reads, backups and the current fix-only scope.
+- [Interface](ui-design.md): compact bilingual design and status verification.
+- [Forum draft](forum-post.md): English/German text with source-review invitation.
+- [Case evidence](case-evidence.md) and [historical analysis](deeper-analysis.md): investigation background, not extra controls in the current app.
 
-Created by [IamAngusU](https://github.com/IamAngusU). Project: [BF6 Crash Helper](https://github.com/IamAngusU/bf6-crash-helper).
+Powered by [IamAngusU](https://github.com/IamAngusU). [Repository](https://github.com/IamAngusU/bf6-crash-helper).

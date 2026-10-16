@@ -10,6 +10,8 @@ At **10:30:51**, after the player's explicit consent, exactly the optional SAN2 
 
 Version **0.2.0** packages this as an explicitly experimental, build/hash-limited, opt-in operation with retained backups and undo. It does not publish a game patch or claim universal success. [Scope, failure handling and rollback](rapid-workaround.md).
 
+Version **0.4.0** focuses the public executable on this workaround and its recovery only. Diagnostic/dump/recording functions described in the investigation below are historical research, not current app controls.
+
 ## Observed behavior
 
 The player used free REDSEC. Ordinary Battle Royale rounds worked, while Rapid Royale Solo and Trios could crash during a join or the next round's loading. Some Rapid attempts succeeded too. A cache reset was followed by successful play, then the same crash returned.
@@ -31,7 +33,7 @@ Fault RVA:   bf6.exe + 0x051ed625
 
 A PE timestamp is a binary header field, not a reliable date of the user's crash. An RVA is relative to that executable's loaded base and is not a portable function name. Check binary identity before assigning this case's signature. Matching metadata is a recognition condition, not proof of an identical underlying cause; different or unavailable identity must remain unknown.
 
-The helper's own dump reader now checks this signature before attempting an optional CAS-request extraction from captured registers and stack data. It reports missing bytes or inconsistent records as unknown rather than repeating the identifiers below for every matching crash. [Extraction requirements](deeper-analysis.md#what-the-helpers-own-dump-parser-can-recover).
+The earlier helper's dump reader checked this signature before attempting an optional CAS-request extraction from captured registers and stack data. It reported missing bytes or inconsistent records as unknown rather than repeating the identifiers below for every matching crash. [Extraction requirements](deeper-analysis.md#what-the-helpers-own-dump-parser-can-recover).
 
 ## The CAS request
 

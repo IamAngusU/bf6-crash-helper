@@ -40,6 +40,9 @@ internal static class MirakTests
         Run("hard linked originals are refused", HardLink);
         Run("directory links are refused", Junction);
         Run("worker request bounds, identity and expiry", Requests);
+        Run("reopened helper verifies applied state without duplicating changes", RecognizeApplied);
+        Run("recognition distinguishes restored, partial, updated and blocked recovery", RecognizeChanges);
+        Run("missing files without a record never claim a successful fix", UntrackedMissing);
         Console.WriteLine("PASS: " + count + " Mirak assertions in " + scenarios + " scenarios; synthetic Steam libraries only, no UAC/game/ETW actions.");
     }
 
@@ -105,12 +108,39 @@ internal static class MirakTests
             f.Build("99999", "4", "Battlefield 6"); Refused(delegate { f.Engine().Review(f.Game); }); Check(f.Same(0) && f.Same(1) && !Directory.Exists(f.Store), "unknown build changed data");
             f.Build(f.Spec.Build, "1028", "Battlefield 6"); Refused(delegate { f.Engine().Review(f.Game); });
             f.Build(f.Spec.Build, "4", "../outside"); Refused(delegate { f.Engine().Review(f.Game); });
-            f.Build(f.Spec.Build, "4", "Battlefield 6"); File.Delete(f.Target(1)); Refused(delegate { f.Engine().Review(f.Game); }); Check(f.Same(0) && !Directory.Exists(f.Store), "partial input wrote backups");
+            f.Build(f.Spec.Build, "4", "Battlefield 6"); File.Delete(f.Target(1)); var absent = f.Engine().Review(f.Game); Check(absent.Status == "UntrackedMissing" && !absent.CanApply && !absent.CanUndo, "missing files granted an operation"); Check(f.Same(0) && !Directory.Exists(f.Store), "partial input wrote backups");
             Refused(delegate { f.Engine().Review(Path.Combine(f.Game, new string('q', 75))); }); Check(f.Same(0) && !Directory.Exists(f.Store), "unrestorable long path permitted writes");
         }
     }
     static void Running()
     { using (var f = new Fixture()) { var e = f.Engine(null, delegate { throw new IOException("running"); }); Refused(delegate { e.Apply(f.Game, "x"); }); Check(f.Same(0) && f.Same(1) && !Directory.Exists(f.Store), "guard after writes"); } }
+    static void RecognizeApplied()
+    {
+        using (var f = new Fixture())
+        {
+            var r = f.Apply(); var journal = Path.Combine(f.Store, "mirak.json"); string before = File.ReadAllText(journal);
+            var history = f.Engine().Recorded(); Check(history.Status == "Recorded" && !history.CanApply && !history.CanUndo, "journal alone claimed live state");
+            var reopened = f.Engine(null, delegate { throw new IOException("game still running"); });
+            var plan = reopened.Review(null);
+            Check(plan.Status == "AppliedVerified" && plan.CanUndo && !plan.CanApply && plan.TransactionId == r.Id, "reopened applied state not detected");
+            Check(File.ReadAllText(journal) == before && !File.Exists(f.Target(0)) && !File.Exists(f.Target(1)), "status check wrote files or journal");
+            Refused(delegate { reopened.Apply(f.Game, plan.Fingerprint); });
+            Check(File.Exists(f.Backup(r, 0)) && File.Exists(f.Backup(r, 1)), "recognition lost originals");
+        }
+    }
+    static void RecognizeChanges()
+    {
+        using (var f = new Fixture()) { f.Apply(); f.Original(0); f.Original(1); var p = f.Engine().Review(null); Check(p.Status == "OriginalsPresent" && p.CanUndo && !p.CanApply, "Steam-restored originals called active"); f.Undo(); }
+        using (var f = new Fixture()) { f.Apply(); f.Original(0); var p = f.Engine().Review(null); Check(p.Status == "RecoveryPending" && p.CanUndo, "partial restore called fully applied"); }
+        using (var f = new Fixture()) { f.Apply(); f.Build("99999", "4", "Battlefield 6"); f.Original(0); f.Original(1); var p = f.Engine().Review(null); Check(p.Status == "UpdatedFilesPresent" && p.CanUndo, "updated files called old workaround"); }
+        using (var f = new Fixture()) { f.Apply(); f.Build("99999", "4", "Battlefield 6"); var p = f.Engine().Review(null); Check(p.Status == "RecoveryBlocked" && !p.CanUndo && !p.CanApply, "old backups offered for updated missing files"); }
+        using (var f = new Fixture()) { var r = f.Apply(); File.WriteAllText(f.Backup(r, 0), "corrupt"); var p = f.Engine().Review(null); Check(p.Status == "RecoveryBlocked" && !p.CanUndo && !File.Exists(f.Target(0)), "bad backup still called verified applied"); }
+        using (var f = new Fixture()) { f.Apply(); File.WriteAllText(f.Target(1), "new current file"); var p = f.Engine().Review(null); Check(p.Status == "RecoveryBlocked" && !p.CanUndo && File.ReadAllText(f.Target(1)) == "new current file", "current conflict called applied or overwritten"); }
+    }
+    static void UntrackedMissing()
+    {
+        using (var f = new Fixture()) { File.Delete(f.Target(0)); File.Delete(f.Target(1)); var p = f.Engine().Review(f.Game); Check(p.Status == "UntrackedMissing" && !p.CanApply && !p.CanUndo && p.TransactionId == "", "absence alone claimed a fix"); Check(!Directory.Exists(f.Store), "untracked detection invented backups"); }
+    }
     static void ReviewTokens()
     {
         using (var f = new Fixture()) { Refused(delegate { f.Engine().Apply(f.Game, new string('0', 64)); }); Check(f.Same(0) && !File.Exists(Path.Combine(f.Store, "mirak.json")), "stale review mutated"); var r = f.Apply(); Refused(delegate { f.Engine().Undo(new string('0', 64)); }); Check(!File.Exists(f.Target(0)) && File.Exists(f.Backup(r, 0)), "stale undo mutated"); f.Undo(); }

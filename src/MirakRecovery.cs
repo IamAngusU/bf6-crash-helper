@@ -18,7 +18,7 @@ namespace Bf6CrashHelper
     public sealed class MirakPlan
     {
         public string GamePath, BuildId, Fingerprint, BackupDirectory;
-        public string State = "NotApplied", TransactionId = "";
+        public string State = "NotApplied", TransactionId = "", Status = "NotChecked";
         public bool CanApply, CanUndo;
         public string Message = "";
     }
@@ -65,7 +65,7 @@ namespace Bf6CrashHelper
         {
             var games = System.Diagnostics.Process.GetProcessesByName("bf6");
             bool running = games.Length != 0; foreach (var game in games) game.Dispose();
-            if (running) throw new IOException(Diagnostics.L("BF6 zuerst regulär schließen. Das Tool beendet keine Prozesse.", "Close BF6 normally first. The helper does not stop processes."));
+            if (running) throw new IOException(UiLanguage.Text("BF6 zuerst regulär schließen. Das Tool beendet keine Prozesse.", "Close BF6 normally first. The helper does not stop processes."));
         }
         static bool Terminal(MirakRecord r) { return TerminalStates.Contains(r.State); }
         public MirakRecord Latest() { return Load().LastOrDefault(r => !Terminal(r)); }
@@ -76,23 +76,79 @@ namespace Bf6CrashHelper
             var active = records.LastOrDefault(r => !Terminal(r));
             if (active != null)
             {
-                return new MirakPlan { GamePath = active.GamePath, BuildId = active.BuildId, State = active.State,
-                    TransactionId = active.Id, CanUndo = true, BackupDirectory = BackupFolder(active),
-                    Fingerprint = Token("Undo", active.GamePath, active.Id),
-                    Message = Diagnostics.L("Eine Änderung oder ein unterbrochener Vorgang ist gespeichert. Rückgängig prüft zuerst alle Dateien und überschreibt keine geänderten Originale.", "A change or interrupted operation is recorded. Undo checks every file first and never overwrites changed originals.") };
+                return InspectRecorded(active);
             }
-            string game = String.IsNullOrWhiteSpace(selectedGame) ? Diagnostics.DetectGamePath() : selectedGame;
+            string game = String.IsNullOrWhiteSpace(selectedGame) ? SteamInstallation.DetectGamePath() : selectedGame;
             game = Normalize(game);
             using (var lease = new MirakPathLease(new [] { game }))
             using (var manifest = OpenManifest(game))
             {
                 string build = Identity(game, manifest);
-                if (build != spec.Build) throw new IOException(Diagnostics.L("Dieser Build ist nicht freigegeben. Es wird nichts geändert. Unterstützter Steam-Build: ", "This build is not supported. Nothing will change. Supported Steam build: ") + spec.Build);
-                CheckGuards(game); CheckTargets(game);
+                if (build != spec.Build) throw new IOException(UiLanguage.Text("Dieser Build ist nicht freigegeben. Es wird nichts geändert. Unterstützter Steam-Build: ", "This build is not supported. Nothing will change. Supported Steam build: ") + spec.Build);
+                CheckGuards(game);
+                if (spec.Targets.Any(p => !File.Exists(Path.Combine(game, p))))
+                    return new MirakPlan { GamePath = game, BuildId = build, State = "UntrackedMissing", Status = "UntrackedMissing", BackupDirectory = store,
+                        Message = UiLanguage.Text("Die optionalen Dateien fehlen, aber diese App hat keine passende Sicherungshistorie. Ein früherer oder manueller Workaround ist möglich, jedoch nicht nachgewiesen. Es wird nichts erneut angewendet; für Originaldateien Steam-Dateiprüfung verwenden oder die vorhandene Originalsicherung behalten.", "Optional files are absent, but this app has no matching backup history. An earlier or manual workaround is possible, not established. Nothing will be reapplied; use Steam file verification for originals or keep your existing original backup.") };
+                CheckTargets(game);
                 return new MirakPlan { GamePath = game, BuildId = build, CanApply = true,
+                    Status = "Compatible",
                     Fingerprint = Token("Apply", game, spec.Build), BackupDirectory = store,
-                    Message = Diagnostics.L("Experimenteller Rapid-Royale/Mirak-Tal-Workaround. Genau zwei optionale SAN2-Indexdateien werden nach einer geprüften Sicherung aus dem Ladepfad entfernt. Die Basiskarte bleibt erhalten. Ein erfolgreicher Test auf einem PC ist kein allgemeiner Fixnachweis. Rückgängig bleibt verfügbar.", "Experimental Rapid Royale / Mirak Valley workaround. Exactly two optional SAN2 index files are removed from the loading path after verified backups. The base map is retained. Successful play on one PC is not a universal fix. Undo remains available.") };
+                    Message = UiLanguage.Text("Experimenteller Rapid-Royale/Mirak-Tal-Workaround. Genau zwei optionale SAN2-Indexdateien werden nach einer geprüften Sicherung aus dem Ladepfad entfernt. Die Basiskarte bleibt erhalten. Ein erfolgreicher Test auf einem PC ist kein allgemeiner Fixnachweis. Rückgängig bleibt verfügbar.", "Experimental Rapid Royale / Mirak Valley workaround. Exactly two optional SAN2 index files are removed from the loading path after verified backups. The base map is retained. Successful play on one PC is not a universal fix. Undo remains available.") };
             }
+        }
+
+        // History-only discovery is cheap and never claims the recorded change is
+        // still active. Review rechecks the live build, guards, targets and backups.
+        public MirakPlan Recorded()
+        {
+            var active = Latest(); return active == null ? null : RecordedPlan(active);
+        }
+        MirakPlan RecordedPlan(MirakRecord record)
+        {
+            return new MirakPlan { GamePath = record.GamePath, BuildId = record.BuildId, State = record.State, Status = "Recorded",
+                TransactionId = record.Id, BackupDirectory = BackupFolder(record),
+                Fingerprint = Token("Undo", record.GamePath, record.Id),
+                Message = UiLanguage.Text("Eine gespeicherte Änderung wurde gefunden. Der aktuelle Zustand wird vor Rückgängig erneut geprüft.", "A saved change was found. The current state is checked again before Undo.") };
+        }
+        MirakPlan InspectRecorded(MirakRecord record)
+        {
+            var plan = RecordedPlan(record);
+            try
+            {
+                using (var lease = new MirakPathLease(new [] { record.GamePath, store, BackupFolder(record) }))
+                using (var manifest = OpenManifest(record.GamePath))
+                {
+                    string build = Identity(record.GamePath, manifest); plan.BuildId = build;
+                    for (int i = 0; i < spec.Targets.Length; i++)
+                        if (File.Exists(Backup(record, i))) Verify(Backup(record, i), spec.TargetHashes[i], spec.TargetSizes[i]);
+                    if (build != spec.Build)
+                    {
+                        if (!spec.Targets.All(p => File.Exists(Path.Combine(record.GamePath, p))))
+                            throw new IOException(UiLanguage.Text("Das Spiel wurde aktualisiert und aktuelle Indexdateien fehlen. Keine alten Backups einspielen. Steam-Dateiprüfung verwenden; Sicherungen bleiben erhalten.", "The game was updated and current index files are missing. Do not insert old backups. Use Steam file verification; backups are retained."));
+                        plan.Status = "UpdatedFilesPresent"; plan.CanUndo = true;
+                        plan.Message = UiLanguage.Text("Neuere Spieldateien sind vorhanden. Rückgängig behält sie und schließt den alten Vorgang ab; alte Backups werden nicht eingefügt.", "Newer game files are present. Undo keeps them and closes the old record; old backups will not be inserted."); return plan;
+                    }
+                    CheckGuards(record.GamePath); int absent = 0;
+                    for (int i = 0; i < spec.Targets.Length; i++)
+                    {
+                        if (File.Exists(Target(record.GamePath, i))) Verify(Target(record.GamePath, i), spec.TargetHashes[i], spec.TargetSizes[i]);
+                        else { Verify(Backup(record, i), spec.TargetHashes[i], spec.TargetSizes[i]); absent++; }
+                    }
+                    plan.Status = absent == spec.Targets.Length && record.State == "Applied" ? "AppliedVerified" : absent == 0 ? "OriginalsPresent" : "RecoveryPending";
+                    plan.CanUndo = true;
+                    plan.Message = plan.Status == "AppliedVerified"
+                        ? UiLanguage.Text("Workaround bereits angewendet: gespeicherter Vorgang, beide Sicherungen, aktueller Build und entfernte Indexdateien wurden geprüft. Es wird nichts doppelt angewendet. Rückgängig ist verfügbar.", "Workaround already applied: the saved record, both backups, current build and absent index files were verified. It will not be applied twice. Undo is available.")
+                        : plan.Status == "OriginalsPresent"
+                        ? UiLanguage.Text("Die Originaldateien sind bereits vorhanden; der Workaround ist nicht mehr aktiv. Wiederherstellung abschließen prüft sie und schließt den gespeicherten Vorgang ab.", "Original files are already present; the workaround is no longer active. Finish recovery checks them and closes the saved record.")
+                        : UiLanguage.Text("Ein unterbrochener Vorgang wurde gefunden. Vorhandene Originale und benötigte Sicherungen wurden geprüft; Rückgängig kann die Wiederherstellung fortsetzen.", "An interrupted operation was found. Existing originals and required backups were checked; Undo can resume recovery.");
+                }
+            }
+            catch (Exception error)
+            {
+                if (!(error is IOException) && !(error is UnauthorizedAccessException) && !(error is System.ComponentModel.Win32Exception) && !(error is ArgumentException)) throw;
+                plan.Status = "RecoveryBlocked"; plan.CanUndo = false; plan.Message = error.Message;
+            }
+            return plan;
         }
 
         public MirakRecord Apply(string gamePath, string expectedReview)
@@ -200,7 +256,7 @@ namespace Bf6CrashHelper
                     // An interrupted partial staging file is kept; retry uses a fresh name and never trusts it.
                     string temp = Path.Combine(Path.GetDirectoryName(target), ".b6-" + Guid.NewGuid().ToString("N").Substring(0, 16) + ".tmp");
                     CopyDurable(Backup(record, i), temp, spec.TargetHashes[i], spec.TargetSizes[i]);
-                    closed(); Recovery.CheckParents(target); File.Move(temp, target);
+                    closed(); MirakPaths.CheckParents(target); File.Move(temp, target);
                     Verify(target, spec.TargetHashes[i], spec.TargetSizes[i]); fault("Restored" + i);
                 }
                 record.State = "Restored"; Save(records, record); return record;
@@ -209,7 +265,7 @@ namespace Bf6CrashHelper
 
         string Normalize(string path)
         {
-            if (String.IsNullOrWhiteSpace(path)) throw new IOException(Diagnostics.L("Keine Steam-Installation gefunden. Spielordner auf der Prüfen-Seite auswählen.", "No Steam installation found. Select its game folder on the Check tab."));
+            if (String.IsNullOrWhiteSpace(path)) throw new IOException(UiLanguage.Text("Keine Steam-Installation gefunden. Über Spielordner den Steam-Spielordner auswählen.", "No Steam installation found. Select the Steam game folder using Game folder."));
             string full = Path.GetFullPath(path.Trim().Trim('"')).TrimEnd('\\');
             if (full.Length > 220 || full.Length < 4 || full[1] != ':' || full.Substring(2).Contains(":")) throw new IOException("Only ordinary local Windows installation paths are supported.");
             var drive = new DriveInfo(Path.GetPathRoot(full));
@@ -220,20 +276,20 @@ namespace Bf6CrashHelper
                 if (target.Length > 259 || Path.GetDirectoryName(target).Length + 25 > 259) throw new IOException("The installation path is too long for safe backup and restoration. Use a shorter Steam library path; nothing was changed.");
             }
             if (store.Length + 80 > 259) throw new IOException("The local backup path is too long for safe recovery. Nothing was changed.");
-            Recovery.CheckParents(full); return full;
+            MirakPaths.CheckParents(full); return full;
         }
         FileStream OpenManifest(string game)
         {
             game = Normalize(game); var parent = Directory.GetParent(game);
             if (parent == null || !parent.Name.Equals("common", StringComparison.OrdinalIgnoreCase) || parent.Parent == null || !parent.Parent.Name.Equals("steamapps", StringComparison.OrdinalIgnoreCase)) throw new IOException("The selected folder must be inside a Steam steamapps/common library.");
             string manifest = Path.Combine(parent.Parent.FullName, "appmanifest_2807960.acf");
-            Recovery.CheckParents(manifest);
+            MirakPaths.CheckParents(manifest);
             return new FileStream(manifest, FileMode.Open, FileAccess.Read, FileShare.Read);
         }
         string Identity(string game, FileStream manifest)
         {
             if (manifest.Length > 1024 * 1024) throw new IOException("Unexpected Steam app manifest size.");
-            var app = Diagnostics.ReadVdf(manifest.Name).Child("AppState");
+            var app = SteamInstallation.ReadVdf(manifest.Name).Child("AppState");
             string configured = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(manifest.Name), "common", app.Value("installdir")));
             if (app.Value("appid") != "2807960" || !String.Equals(configured, game, StringComparison.OrdinalIgnoreCase)) throw new IOException("The Steam app manifest does not match this Battlefield installation.");
             if (app.Value("StateFlags") != "4") throw new IOException("Steam reports an unfinished/update state. Finish or pause game updates and review again.");
@@ -256,13 +312,13 @@ namespace Bf6CrashHelper
         { using (var sha = SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant(); }
         internal static void Verify(string path, string hash, long size)
         {
-            Recovery.CheckParents(path);
+            MirakPaths.CheckParents(path);
             using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                 if ((size >= 0 && file.Length != size) || file.Length > 1024L * 1024L * 1024L || Hash(file) != hash) throw new IOException("A required file or backup has changed: " + Path.GetFileName(path) + ". Nothing will overwrite it.");
         }
         internal static void CopyDurable(string source, string destination, string hash, long size)
         {
-            Recovery.CheckParents(source); Recovery.CheckParents(destination);
+            MirakPaths.CheckParents(source); MirakPaths.CheckParents(destination);
             using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read))
             using (var output = new FileStream(destination, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 65536, FileOptions.WriteThrough))
             {
@@ -277,7 +333,7 @@ namespace Bf6CrashHelper
         }
         List<MirakRecord> Load()
         {
-            Recovery.CheckParents(store); Recovery.CheckParents(journal);
+            MirakPaths.CheckParents(store); MirakPaths.CheckParents(journal);
             if (!File.Exists(journal)) return new List<MirakRecord>();
             using (var file = new FileStream(journal, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
@@ -306,17 +362,17 @@ namespace Bf6CrashHelper
             {
                 byte[] bytes = new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(records)); file.Write(bytes, 0, bytes.Length); file.Flush(true);
             }
-            Recovery.CheckParents(journal); Recovery.CheckParents(journal + ".previous");
+            MirakPaths.CheckParents(journal); MirakPaths.CheckParents(journal + ".previous");
             if (File.Exists(journal)) File.Replace(temp, journal, journal + ".previous"); else File.Move(temp, journal);
         }
         IDisposable Lock(string game)
         {
-            closed(); Recovery.CheckParents(store); SecureDirectory(store);
+            closed(); MirakPaths.CheckParents(store); SecureDirectory(store);
             return new MirakOperationLock(store, game);
         }
         internal static void SecureDirectory(string path)
         {
-            Recovery.CheckParents(path);
+            MirakPaths.CheckParents(path);
             if (Directory.Exists(path)) return;
             var security = new DirectorySecurity(); security.SetAccessRuleProtection(true, false);
             var sid = WindowsIdentity.GetCurrent().User; security.SetOwner(sid);
@@ -338,7 +394,7 @@ namespace Bf6CrashHelper
             {
                 foreach (var input in inputs)
                 {
-                    Recovery.CheckParents(input.Path);
+                    MirakPaths.CheckParents(input.Path);
                     var file = new FileStream(input.Path, FileMode.Open, FileAccess.Read, FileShare.Read); files.Add(file);
                     if ((input.Size >= 0 && file.Length != input.Size) || file.Length > 1024L * 1024L * 1024L || MirakRecovery.Hash(file) != input.Hash) throw new IOException("A guarded file or backup changed; restoration/mutation stopped.");
                 }
@@ -359,7 +415,7 @@ namespace Bf6CrashHelper
                 mutex = new Mutex(false, "Global\\BF6CrashHelper-Mirak-" + key);
                 try { owned = mutex.WaitOne(0); } catch (AbandonedMutexException) { owned = true; }
                 if (!owned) throw new IOException("Another workaround operation is already active for this installation.");
-                string lockPath = Path.Combine(store, "operation.lock"); Recovery.CheckParents(lockPath);
+                string lockPath = Path.Combine(store, "operation.lock"); MirakPaths.CheckParents(lockPath);
                 file = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             }
             catch { Dispose(); throw; }
@@ -422,7 +478,7 @@ namespace Bf6CrashHelper
             if (count == 0 || count >= text.Capacity) throw new IOException("Cannot validate the final file handle path.");
             string actual = text.ToString(); if (actual.StartsWith(@"\\?\")) actual = actual.Substring(4);
             if ((info.Attributes & 0x400) != 0 || ((info.Attributes & 0x10) != 0) != directory || (!directory && info.Links != 1) ||
-                !String.Equals(actual.TrimEnd('\\'), Path.GetFullPath(expected).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)) throw new IOException("A linked, multiply linked, or redirected path was refused.");
+                !String.Equals(actual.TrimEnd('\\'), Path.GetFullPath(expected).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)) throw new IOException("A linked, multiply linked, or redirected path was refused: " + expected + " -> " + actual);
         }
         internal static void Remove(SafeFileHandle handle)
         { var value = new Disposition { Delete = true }; if (!SetFileInformationByHandle(handle, 4, ref value, 1)) throw new Win32Exception(Marshal.GetLastWin32Error()); }

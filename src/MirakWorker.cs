@@ -30,11 +30,11 @@ namespace Bf6CrashHelper
         internal static string RequestDirectory(string id)
         {
             Guid parsed; if (!Guid.TryParseExact(id, "N", out parsed)) throw new IOException("Invalid workaround request.");
-            string path = Path.Combine(Requests, id); Recovery.CheckParents(path); return path;
+            string path = Path.Combine(Requests, id); MirakPaths.CheckParents(path); return path;
         }
         internal static MirakRequest ReadRequest(string path, string expectedId)
         {
-            Recovery.CheckParents(path);
+            MirakPaths.CheckParents(path);
             using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 if (file.Length > 16384) throw new IOException("Invalid workaround request size.");
@@ -52,7 +52,7 @@ namespace Bf6CrashHelper
         }
         internal static void WriteNewJson(string path, object value)
         {
-            Recovery.CheckParents(path);
+            MirakPaths.CheckParents(path);
             using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
             {
                 byte[] bytes = new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(value)); file.Write(bytes, 0, bytes.Length); file.Flush(true);
@@ -60,7 +60,7 @@ namespace Bf6CrashHelper
         }
         internal static void CancelUnstarted(string directory)
         {
-            Recovery.CheckParents(directory);
+            MirakPaths.CheckParents(directory);
             using (var claim = new FileStream(Path.Combine(directory, "consumed.lock"), FileMode.CreateNew, FileAccess.Write, FileShare.None)) { claim.Flush(true); }
             WriteNewJson(Path.Combine(directory, "result.json"), new MirakOutcome { State = "Cancelled", Success = false, Message = "Administrator consent cancelled; this request cannot be replayed." });
         }
@@ -111,7 +111,7 @@ namespace Bf6CrashHelper
                     if (process == null) throw new IOException("The elevated helper did not start.");
                     bool ended = await Task.Run(() => process.WaitForExit(120000));
                     if (!ended) return new MirakOutcome { Success = false, State = "Unconfirmed", Message = "The worker has not confirmed completion within two minutes. Do not assume success. Keep the helper and backups; review recovery state before retrying." };
-                    string receipt = Path.Combine(directory, "result.json"); Recovery.CheckParents(receipt);
+                    string receipt = Path.Combine(directory, "result.json"); MirakPaths.CheckParents(receipt);
                     if (!File.Exists(receipt)) return new MirakOutcome { Success = false, State = "Unconfirmed", Message = "No completion receipt was returned. Reopen/review recovery before retrying. Approve elevation using the same Windows account that opened the helper; another administrator account has a different recovery store." };
                     if (new FileInfo(receipt).Length > 16384) throw new IOException("Invalid completion receipt size.");
                     var result = new JavaScriptSerializer().Deserialize<MirakOutcome>(File.ReadAllText(receipt));
@@ -123,7 +123,7 @@ namespace Bf6CrashHelper
             {
                 if (error.NativeErrorCode != 1223) throw;
                 CancelUnstarted(directory);
-                return new MirakOutcome { Success = false, State = "Cancelled", Message = Diagnostics.L("Administratorabfrage abgebrochen. Keine Änderung gestartet.", "Administrator prompt cancelled. No change started.") };
+                return new MirakOutcome { Success = false, State = "Cancelled", Message = UiLanguage.Text("Administratorabfrage abgebrochen. Keine Änderung gestartet.", "Administrator prompt cancelled. No change started.") };
             }
         }
     }

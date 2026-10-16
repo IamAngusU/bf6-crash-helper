@@ -1,13 +1,11 @@
-# Compact interface
+# Compact, fix-only interface
 
-The small main window takes its visual direction from the author's Gaze Lab licence gate and overlay menu. It is a normal desktop window; it does not render over or attach to Battlefield.
+The window follows the author's Gaze Lab licence-gate/overlay visual direction: background `#F7F9FB`, text/action `#15202B`, secondary text `#617181`, status surface `#EEF2F5`, Segoe UI and a left-aligned single column.
 
-- Background `#F7F9FB`, main text/action `#15202B`, secondary text `#617181`, status surface `#EEF2F5`, white secondary buttons.
-- Segoe UI, a single left-aligned column, status directly after compatibility review, one contextual mutation action.
-- English starts every session, with an immediate Deutsch switch. Changing language clears consent. Busy operations lock language, review and mutation controls.
-- Apply is replaced by Undo/recovery when a local pending record exists. Both actions have independent consent and use the same guarded recovery engine and elevation worker as before.
-- No automatic game scan, mutation or upload on open. Reading the helper's own history makes recovery available. Technical paths stay behind Details; optional folder selection and More tools keep the main surface small.
+Version 0.4 exposes only compatibility, Apply and Undo/recovery. More tools and the underlying general diagnostics, cache and recorder code are removed. The default client is 548 × 650 at 96 DPI, with resizing/scrolling available. It uses Windows Forms; no web server or additional runtime is introduced.
 
-The interface uses .NET Framework Windows Forms already available on the supported Windows systems. No browser, web server, installer or new runtime is added. The default client is 548 × 650 at 96 DPI, with resizing and scrolling available for smaller layouts. The source is [CompactForm.cs](../src/CompactForm.cs).
+English starts every session; Deutsch changes the interface immediately and clears consent. A changed installation invalidates the reviewed plan. Busy operations lock language, review and mutation controls. Technical paths and full error text stay behind Details rather than being clipped into the status summary.
 
-Local UI tests cover English on a German culture, language-switch consent reset, Apply/Undo separation, a changed folder invalidating review, busy-state locks and recovery of an interrupted operation. English, German and synthetic recovery views are rendered for visual inspection. These checks do not approve real UAC or modify the player's game.
+A saved record is discovered cheaply, then its current installation is verified asynchronously. The UI distinguishes verified applied, restored originals, updates, pending recovery, blocked recovery and missing files without history. A record alone never claims current success. Even a verified applied workaround is not proof of a permanent game fix.
+
+Powered by IamAngusU links to the repository. The source and backup links stay within the workaround's purpose. Tests cover language/consent gates, stale review, current-state recognition and absence of unrelated tool types from the built assembly. Preview images use synthetic state without private paths.

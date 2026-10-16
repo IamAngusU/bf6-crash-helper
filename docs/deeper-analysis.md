@@ -2,7 +2,7 @@
 
 The open question is why a valid on-disk CAS file had no usable entry in the game's internal lookup at the failing request. A Steam ownership check, successful file verification and a game engine's runtime registration are different observations.
 
-This document describes further analysis options. BF6 Crash Helper does not install REA, a decompiler or a debugger, and its normal scan does not attach to the running game.
+This is historical investigation background. Version 0.4 of the public app only applies or undoes the narrow workaround; it contains no scan, dump parser, recorder, REA, decompiler or debugger. Earlier analysis capabilities described below belong to previous releases/private research.
 
 ## Which REA?
 
@@ -32,7 +32,7 @@ REA's native PE support and Linux core support must not be combined into an unsu
 
 ### What the helper's own dump parser can recover
 
-The helper independently reads bounded portions of an existing Windows minidump. CAS extraction is gated by the recognized `bf6.exe` timestamp, fault RVA, exception code and read target. It then requires a complete captured AMD64 context with consistent instruction/register values before treating R12 as a recorded lookup file identifier.
+The earlier helper independently read bounded portions of an existing Windows minidump. CAS extraction is gated by the recognized `bf6.exe` timestamp, fault RVA, exception code and read target. It then requires a complete captured AMD64 context with consistent instruction/register values before treating R12 as a recorded lookup file identifier.
 
 Offset and length require a further match: the request record at captured exception-context **RBP−0x40** must fall within recorded memory or the recorded crashing thread's stack, have the expected record fields, and contain the same identifier as R12. This reads the dump's recorded bytes, not the running game. It does not search unrelated memory or insert the original case's identifier into every result.
 
@@ -44,9 +44,9 @@ Windows Performance Recorder can record file operations around one loading attem
 
 Kernel recording requires administrator privilege. A bounded start/stop recording does not require changing account membership, installing a driver or weakening security settings. [Microsoft's tracing privilege rules](https://learn.microsoft.com/en-us/windows/win32/api/evntrace/nf-evntrace-starttracea).
 
-The helper's separate trace option should be used for one relevant loading attempt, with a short deadline and private local output. It can retain paths and other process metadata, so the raw ETL is outside the share report. It neither reads the game's arbitrary heap nor proves a Steam/EA entitlement result.
+The earlier helper's separate trace option was intended for one relevant loading attempt, with a short deadline and private local output; it is removed from v0.4. It can retain paths and other process metadata, so the raw ETL is outside the share report. It neither reads the game's arbitrary heap nor proves a Steam/EA entitlement result.
 
-A stop request is not proof that Windows accepted it. Unconfirmed cleanup remains **Cleanup pending** and has a separately confirmed, elevated retry for the helper's own named instance. No successful stop or hard deadline is claimed when Windows has not confirmed it. [Recording recovery](privacy.md#recording-status-and-recovery).
+A stop request is not proof that Windows accepted it. Unconfirmed cleanup remains **Cleanup pending** and has a separately confirmed, elevated retry for the helper's own named instance. No successful stop or hard deadline is claimed when Windows has not confirmed it. [Current scope and handling older releases](privacy.md).
 
 ## Why the tool does not silently enable full dumps
 

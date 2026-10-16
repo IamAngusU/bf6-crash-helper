@@ -14,7 +14,7 @@ Battlefield schließt sich beim Rapid-Royale-Beitritt. **BF6 Crash Helper** biet
 
 ## Loslegen
 
-Ein kleines Fenster, gestaltet nach der [Gaze-Lab-Oberfläche des Autors](https://github.com/IamAngusU/CS2GazeLab/blob/main/Licensing/LicenseGateWindow.xaml). **Englisch ist voreingestellt**, oben kannst du direkt **Deutsch** wählen. Prüfen, Zustimmung und Anwenden/Rückgängig bleiben in derselben Ansicht. Optionale Diagnose liegt hinter **Weitere Werkzeuge**.
+Ein kleines Fenster, gestaltet nach der Gaze-Lab-Oberfläche des Autors. **Englisch ist voreingestellt**, oben kannst du direkt **Deutsch** wählen. Prüfen, Zustimmung und Anwenden/Rückgängig bleiben in derselben Ansicht. Optionale Diagnose liegt hinter **Weitere Werkzeuge**.
 
 <img src="assets/rapid-workaround-de.png" width="564" alt="Kompaktes deutsches Fenster: Kompatibilität prüfen, Erklärung und nicht vorausgewählte Zustimmung. Anwenden ist vor der Prüfung deaktiviert.">
 

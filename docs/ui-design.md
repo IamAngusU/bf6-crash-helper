@@ -1,6 +1,6 @@
 # Compact interface
 
-The small main window takes its visual direction from the author's [Gaze Lab licence gate](https://github.com/IamAngusU/CS2GazeLab/blob/main/Licensing/LicenseGateWindow.xaml) and [overlay menu](https://github.com/IamAngusU/CS2GazeLab/blob/main/Rendering/OverlayWindow.xaml). It is a normal desktop window; it does not render over or attach to Battlefield.
+The small main window takes its visual direction from the author's Gaze Lab licence gate and overlay menu. It is a normal desktop window; it does not render over or attach to Battlefield.
 
 - Background `#F7F9FB`, main text/action `#15202B`, secondary text `#617181`, status surface `#EEF2F5`, white secondary buttons.
 - Segoe UI, a single left-aligned column, status directly after compatibility review, one contextual mutation action.

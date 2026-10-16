@@ -14,7 +14,7 @@ Battlefield closes while you join Rapid Royale. **BF6 Crash Helper** offers a bu
 
 ## Quick start
 
-One compact window, inspired by the author's [Gaze Lab interface](https://github.com/IamAngusU/CS2GazeLab/blob/main/Licensing/LicenseGateWindow.xaml). **English is the default**, with a live **Deutsch** switch. Compatibility, explicit consent and Apply/Undo stay in the same surface. Optional diagnostics are behind **More tools**.
+One compact window, inspired by the author's Gaze Lab interface. **English is the default**, with a live **Deutsch** switch. Compatibility, explicit consent and Apply/Undo stay in the same surface. Optional diagnostics are behind **More tools**.
 
 <img src="assets/rapid-workaround.png" width="564" alt="Compact English window: compatibility check, explained opt-in and disabled Apply button before review. Language can be switched to German.">
 

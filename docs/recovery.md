@@ -1,5 +1,7 @@
 # Cache test and recovery
 
+For the separate two-file Rapid Royale workaround, use [Rapid recovery and update behavior](rapid-workaround.md). Its backups are distinct from the cache backups below.
+
 A cache reset is an optional experiment. It is not a verified fix for the investigated Rapid Royale failure. The original case crashed again after a period of successful play following a reset.
 
 ## Before the test

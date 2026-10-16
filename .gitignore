@@ -9,3 +9,6 @@
 *.acf
 *.user
 *.suo
+*.original
+mirak.json
+mirak.json.previous

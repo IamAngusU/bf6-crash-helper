@@ -76,6 +76,10 @@ public static class DiagnosticsTests
         Check(!Diagnostics.ReadDump(Fixture(write)).KnownSignature, "write access is not the known read signature");
         byte[] shortParameters = Dump(); W32(shortParameters, 88, 1);
         Check(!Diagnostics.ReadDump(Fixture(shortParameters)).KnownSignature, "target requires two exception parameters");
+        byte[] patched = Dump(); W32(patched, 244, 0x6ac83b64); W64(patched, 80, 0x1451ed885UL);
+        Check(Diagnostics.ReadDump(Fixture(patched)).KnownSignature, "updated binary requires its matching RVA");
+        W64(patched, 80, 0x1451ed625UL); Check(!Diagnostics.ReadDump(Fixture(patched)).KnownSignature, "new binary does not accept old RVA");
+        W32(patched, 244, 0x6abf2953); W64(patched, 80, 0x1451ed885UL); Check(!Diagnostics.ReadDump(Fixture(patched)).KnownSignature, "old binary does not accept new RVA");
     }
 
     private static void DumpBounds()
@@ -120,6 +124,8 @@ public static class DiagnosticsTests
         Check(request.KnownSignature && request.CasFileId == "0xbe29da23000b" && request.CasByteOffset == "12345" && request.CasByteLength == "67", "captured context and memory-list record agree");
         Check(request.CasRequestStatus.IndexOf("SAN2 / cas_11.cas", StringComparison.Ordinal) >= 0, "only captured known ID receives a local-layout label");
         Check(Diagnostics.ReadDump(Fixture(DumpWithRequest(true))).CasByteLength == "67", "exception-thread stack can supply the record");
+        byte[] patched = DumpWithRequest(false); W32(patched, 244, 0x6ac83b64); W64(patched, 80, 0x1451ed885UL); W64(patched, 576 + 248, 0x1451ed885UL);
+        Check(Diagnostics.ReadDump(Fixture(patched)).CasByteLength == "67", "updated matching context supports the recorded request layout");
         byte[] missing = DumpWithRequest(false); W32(missing, 8, 2);
         CrashEvidence idOnly = Diagnostics.ReadDump(Fixture(missing));
         Check(idOnly.CasFileId == "0xbe29da23000b" && idOnly.CasByteLength == "", "missing memory leaves lookup ID only and no invented range");

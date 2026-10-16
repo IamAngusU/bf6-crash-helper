@@ -10,11 +10,11 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
 [assembly: AssemblyTitle("BF6 Crash Helper")]
-[assembly: AssemblyDescription("Local Battlefield crash diagnostics and reversible cache experiments")]
+[assembly: AssemblyDescription("BF6 / REDSEC diagnostics and an opt-in reversible Rapid Royale workaround")]
 [assembly: AssemblyCompany("IamAngusU")]
 [assembly: AssemblyProduct("BF6 Crash Helper")]
 [assembly: AssemblyCopyright("Copyright © 2026 IamAngusU")]
-[assembly: AssemblyVersion("0.1.0.0")]
+[assembly: AssemblyVersion("0.2.0.0")]
 
 namespace Bf6CrashHelper
 {
@@ -23,7 +23,7 @@ namespace Bf6CrashHelper
         [STAThread]
         static void Main(string[] args)
         {
-            if (TraceRecorder.HandleWorker(args)) return;
+            if (MirakWorker.HandleWorker(args) || TraceRecorder.HandleWorker(args)) return;
             if (args.Length != 0) { MessageBox.Show("Start BF6 Crash Helper without command-line arguments."); return; }
             bool first;
             using (var mutex = new Mutex(true, "Local\\BF6CrashHelper", out first))
@@ -51,6 +51,11 @@ namespace Bf6CrashHelper
         readonly ComboBox mode = new ComboBox(), map = new ComboBox(), access = new ComboBox();
         readonly System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
         readonly Recovery recovery = new Recovery();
+        readonly MirakRecovery mirak = new MirakRecovery();
+        readonly CheckBox mirakConsent = new CheckBox(), mirakUndoConsent = new CheckBox();
+        readonly Button mirakCheck = new Button(), mirakApply = new Button(), mirakUndo = new Button();
+        readonly TextBox mirakSummary = new TextBox();
+        MirakPlan mirakPlan;
         ScanReport report;
         string captureDirectory;
         bool busy;
@@ -73,9 +78,9 @@ namespace Bf6CrashHelper
             header.Controls.Add(new Label { Text = L("Abstürze verstehen. Änderungen kontrollieren.", "Understand crashes. Stay in control of changes."), AutoSize = true, Location = new Point(2, 51) });
             shell.Controls.Add(header, 0, 0);
             tabs.Dock = DockStyle.Fill; tabs.Padding = new Point(20, 10); shell.Controls.Add(tabs, 0, 1);
-            var start = Page(L("Prüfen", "Check")); var resultPage = Page(L("Ergebnis", "Results"));
+            var rapidPage = Page("Rapid Royale"); var start = Page(L("Prüfen", "Check")); var resultPage = Page(L("Ergebnis", "Results"));
             var capture = Page(L("Aufzeichnen", "Record")); var recover = Page(L("Cache & Rückgängig", "Cache & undo"));
-            BuildScan(start); BuildResults(resultPage); BuildCapture(capture); BuildRecovery(recover);
+            BuildScan(start); BuildResults(resultPage); BuildCapture(capture); BuildRecovery(recover); BuildMirak(rapidPage);
             var footer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2 };
             footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 230));
             stage.Text = L("Bereit. Du entscheidest, was gestartet wird.", "Ready. You choose what starts."); stage.Dock = DockStyle.Fill; stage.TextAlign = ContentAlignment.MiddleLeft;
@@ -84,7 +89,7 @@ namespace Bf6CrashHelper
             author.LinkClicked += delegate { Open(Repository); }; shell.Controls.Add(author, 0, 3);
             timer.Interval = 1500; timer.Tick += delegate { RefreshCapture(); }; timer.Start();
             FormClosing += HandleClosing;
-            RefreshRecovery();
+            RefreshRecovery(); RefreshMirak();
             captureDirectory = TraceRecorder.FindPendingRun();
             RefreshCapture();
         }
@@ -165,6 +170,62 @@ namespace Bf6CrashHelper
             }); flow.Controls.Add(validate);
         }
 
+        void BuildMirak(TabPage page)
+        {
+            var flow = Flow(page); Heading(flow, L("Rapid Royale: experimenteller Workaround", "Rapid Royale: experimental workaround"));
+            flow.Controls.Add(TextBlock(L("Bei einem untersuchten Steam/REDSEC-PC wurden Rapid-Beitritte nach diesem Versuch stabiler. Das beweist keinen allgemeinen Fix. Der Versuch unterstützt ausschließlich den geprüften Steam-Build 25851446 und unveränderte Dateihashes. Er kann auch fehlschlagen oder das Laden verhindern.", "On one investigated Steam/REDSEC PC, Rapid joins became stable after this experiment. That does not establish a universal fix. Only Steam build 25851446 with the reviewed file hashes is supported. The workaround may fail or prevent loading."), 75));
+            flow.Controls.Add(TextBlock(L("Die Kompatibilitätsprüfung liest den gewählten Steam-Spielordner (sonst automatische Suche), bf6.exe und Kartendateien. Anwenden sichert genau die optionale SAN2-Mirak-TOC und Digest und entfernt sie anschließend aus dem Ladepfad. Die Basiskarte bleibt erhalten. Rückgängig prüft die Sicherung; nach Updates bleiben neuere Dateien erhalten. Schließe BF6 vor Anwenden oder Rückgängig.", "Check reads the selected Steam game folder (or detects it), bf6.exe and map metadata. Apply backs up exactly the optional SAN2 Mirak TOC and digest, then removes them from the loading path. The base map remains. Undo validates backups and keeps newer files after updates. Close BF6 before Apply or Undo."), 105));
+            ConfigureButton(mirakCheck, L("Kompatibilität prüfen / Status aktualisieren", "Check compatibility / refresh recovery"), MirakCheckClicked); flow.Controls.Add(mirakCheck);
+            mirakSummary.Multiline = true; mirakSummary.ReadOnly = true; mirakSummary.ScrollBars = ScrollBars.Vertical; mirakSummary.Width = 850; mirakSummary.Height = 115; flow.Controls.Add(mirakSummary);
+            Consent(mirakConsent, L("Ich möchte diesen experimentellen Zwei-Dateien-Versuch mit Sicherung anwenden und dafür die Windows-Administratorabfrage öffnen.", "I want to apply this experimental two-file workaround with backups and open the Windows administrator prompt.")); flow.Controls.Add(mirakConsent);
+            ConfigureButton(mirakApply, L("Sichern und Workaround anwenden", "Back up and apply workaround"), delegate { MirakChange(false); }); mirakApply.Enabled = false; flow.Controls.Add(mirakApply);
+            Consent(mirakUndoConsent, L("Ich möchte die gespeicherte Änderung rückgängig machen. Sicherungen und neuere/veränderte Dateien werden behalten. Dafür öffnet sich die Administratorabfrage.", "I want to undo the saved change. Backups and newer/changed files are preserved. This opens the administrator prompt.")); flow.Controls.Add(mirakUndoConsent);
+            ConfigureButton(mirakUndo, L("Workaround rückgängig / Vorgang wiederherstellen", "Undo workaround / recover interruption"), delegate { MirakChange(true); }); mirakUndo.Enabled = false; flow.Controls.Add(mirakUndo);
+            mirakConsent.CheckedChanged += delegate { UpdateMirakButtons(); }; mirakUndoConsent.CheckedChanged += delegate { UpdateMirakButtons(); };
+            var links = new FlowLayoutPanel { Width = 850, Height = 60 };
+            var source = new Button(); ConfigureButton(source, L("Quellcode und genaue Änderungen", "Source and exact changes"), delegate { Open(Repository + "/blob/v0.2.0/docs/rapid-workaround.md"); }); links.Controls.Add(source);
+            var backups = new Button(); ConfigureButton(backups, L("Lokale Sicherungen öffnen", "Open local backups"), delegate { if (Directory.Exists(mirak.BackupRoot)) Open(mirak.BackupRoot); else MessageBox.Show(this, L("Noch keine Sicherung vorhanden.", "No backup exists yet.")); }); links.Controls.Add(backups); flow.Controls.Add(links);
+        }
+        async void MirakCheckClicked(object sender, EventArgs e)
+        {
+            if (busy) return; mirakConsent.Checked = mirakUndoConsent.Checked = false; mirakPlan = null;
+            SetBusy(true, L("Build und Dateien prüfen …", "Checking build and files …"));
+            string selected = gamePath.Text;
+            try { mirakPlan = await Task.Run(() => mirak.Review(selected)); ShowMirakPlan(); stage.Text = L("Prüfung fertig. Noch nichts angewendet.", "Review complete. No change applied."); }
+            catch (Exception error) { mirakSummary.Text = error.Message; ShowError(error); }
+            finally { SetBusy(false, null); }
+        }
+        async void MirakChange(bool undoChange)
+        {
+            if (busy || mirakPlan == null || (undoChange ? !mirakUndoConsent.Checked || !mirakPlan.CanUndo : !mirakConsent.Checked || !mirakPlan.CanApply)) return;
+            SetBusy(true, L("Sicherung und Spieldateien prüfen …", "Checking backup and game files …"));
+            try
+            {
+                MirakOutcome outcome = await MirakWorker.Execute(mirakPlan, undoChange);
+                string message = outcome.Success ? (outcome.State == "Applied" ? L("Workaround angewendet. Das ist noch kein bestätigter Fix. Du kannst BF6 zum Testen starten.", "Workaround applied. This is not a confirmed fix. You can start BF6 to test it.") : outcome.State == "UpdatedFilesPreserved" ? L("Das Spiel wurde aktualisiert. Neuere Dateien bleiben aktiv; alte Sicherungen wurden behalten.", "The game was updated. Newer files remain active; old backups were retained.") : L("Originale wiederhergestellt. Sicherungen bleiben erhalten.", "Original files restored. Backups retained.")) : outcome.Message;
+                stage.Text = message; MessageBox.Show(this, message + (String.IsNullOrEmpty(outcome.BackupDirectory) ? "" : "\n\n" + outcome.BackupDirectory), "BF6 Crash Helper", MessageBoxButtons.OK, outcome.Success ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+            }
+            catch (Exception error) { ShowError(error); }
+            finally { mirakConsent.Checked = mirakUndoConsent.Checked = false; mirakPlan = null; RefreshMirak(); SetBusy(false, null); }
+        }
+        void RefreshMirak()
+        {
+            try { var pending = mirak.Latest(); if (pending != null) { mirakPlan = mirak.Review(null); ShowMirakPlan(); } else { mirakSummary.Text = L("Keine offene Änderung. Für einen neuen Versuch zuerst Kompatibilität prüfen.", "No pending change. Check compatibility before a new experiment."); } }
+            catch (Exception error) { mirakPlan = null; mirakSummary.Text = error.Message; }
+            UpdateMirakButtons();
+        }
+        void ShowMirakPlan()
+        {
+            mirakSummary.Text = mirakPlan.Message + "\r\n\r\nSteam build: " + mirakPlan.BuildId + " · " + mirakPlan.State + "\r\n" + mirakPlan.GamePath + "\r\n" + L("Sicherungen: ", "Backups: ") + mirakPlan.BackupDirectory + "\r\n\r\nUpdate\\BF6_SAN2_DLC\\Data\\Win32\\game\\glaciermp\\levels\\mp_tungsten\\mp_tungsten.toc + .digest";
+            UpdateMirakButtons();
+        }
+        void UpdateMirakButtons()
+        {
+            mirakCheck.Enabled = !busy;
+            mirakApply.Enabled = !busy && mirakConsent.Checked && mirakPlan != null && mirakPlan.CanApply;
+            mirakUndo.Enabled = !busy && mirakUndoConsent.Checked && mirakPlan != null && mirakPlan.CanUndo;
+        }
+
         async void ScanClicked(object sender, EventArgs e)
         {
             if (!scanConsent.Checked || busy) return;
@@ -183,7 +244,7 @@ namespace Bf6CrashHelper
                     if (!String.IsNullOrEmpty(c.CasRequestStatus)) text.AppendLine(c.CasRequestStatus);
                     text.AppendLine();
                 }
-                results.Text = text.ToString(); preview.Enabled = export.Enabled = true; tabs.SelectedIndex = 1;
+                results.Text = text.ToString(); preview.Enabled = export.Enabled = true; tabs.SelectedIndex = 2;
                 stage.Text = L("Prüfung abgeschlossen. Das Ergebnis ist lokal.", "Check complete. Results are local.");
             }
             catch (Exception error) { ShowError(error); }
@@ -251,7 +312,7 @@ namespace Bf6CrashHelper
 
         object Shareable()
         {
-            return new { tool = "BF6 Crash Helper", version = "0.1.0", author = "IamAngusU", repository = Repository,
+            return new { tool = "BF6 Crash Helper", version = "0.2.0", author = "IamAngusU", repository = Repository,
                 createdUtc = DateTime.UtcNow.ToString("o"), userReportedContext = new {
                     mode = new [] { "unknown", "Battle Royale", "Rapid Royale Solo", "Rapid Royale Trios", "other" }[mode.SelectedIndex],
                     map = new [] { "unknown", "Fort Lyndon", "Mirak Valley", "Vegas Strip", "other" }[map.SelectedIndex],
@@ -274,7 +335,7 @@ namespace Bf6CrashHelper
         }
 
         void RefreshRecovery() { try { var r = recovery.Latest(); recoveryStatus.Text = r == null ? L("Keine offene Cache-Änderung.", "No pending cache change.") : L("Letzte Änderung: ", "Last change: ") + r.Created + " · " + r.State; } catch (Exception error) { recoveryStatus.Text = error.Message; } }
-        void SetBusy(bool value, string message) { busy = value; progress.Visible = value; progress.Style = ProgressBarStyle.Marquee; scan.Enabled = scanConsent.Checked && !value; reset.Enabled = cacheConsent.Checked && !value; undo.Enabled = undoConsent.Checked && !value; traceStart.Enabled = traceConsent.Checked && !value && captureDirectory == null; if (message != null) stage.Text = message; }
+        void SetBusy(bool value, string message) { busy = value; progress.Visible = value; progress.Style = ProgressBarStyle.Marquee; scan.Enabled = scanConsent.Checked && !value; reset.Enabled = cacheConsent.Checked && !value; undo.Enabled = undoConsent.Checked && !value; traceStart.Enabled = traceConsent.Checked && !value && captureDirectory == null; UpdateMirakButtons(); if (message != null) stage.Text = message; }
         void ShowError(Exception error) { stage.Text = L("Vorgang gestoppt. Details im Hinweis.", "Operation stopped. See the message for details."); MessageBox.Show(this, error.Message, "BF6 Crash Helper", MessageBoxButtons.OK, MessageBoxIcon.Information); }
         void Open(string target) { try { Process.Start(new ProcessStartInfo(target) { UseShellExecute = true }); } catch (Exception error) { ShowError(error); } }
         void HandleClosing(object sender, FormClosingEventArgs e)

@@ -1,6 +1,14 @@
 # A Rapid Royale loading crash: the evidence
 
-This anonymized case motivated BF6 Crash Helper. These observations describe one investigated Windows/Steam installation on **15 October 2026**. They are not a universal Battlefield diagnosis or a confirmed workaround.
+This anonymized case motivated BF6 Crash Helper. These observations describe one investigated Windows/Steam installation on **15–16 October 2026**. They are not a universal Battlefield diagnosis or a confirmed universal fix.
+
+## Update and reversible workaround
+
+On 15 October, the official update changed Steam build **25684022 → 25851446**. Before the experimental file change, the updated, unmodified build crashed at **10:29:02 Europe/Berlin** with the same access violation and CAS request described below. Its exact binary-specific signature is PE `0x6ac83b64`, RVA `0x51ed885`, `0xc0000005` reading `0xa7`; old-build offsets are not applied to this new executable.
+
+At **10:30:51**, after the player's explicit consent, exactly the optional SAN2 Mirak TOC and digest were withheld in verified private backups. Base files stayed intact. The player subsequently reported several successful Rapid joins and further crash-free joins the next day, while the Steam build was still 25851446. This makes the workaround a plausible contributor; it does not prove a lasting fix, eliminate server-side changes or establish a licence cause. Earlier memory recording had overwritten join events; a subsequent long trace was intentionally discarded at the user's request. Later rolling-recording preflight was held back until its completed segments could be decoded together. Direct evidence of the successful joins' base-map fallback remains unavailable.
+
+Version **0.2.0** packages this as an explicitly experimental, build/hash-limited, opt-in operation with retained backups and undo. It does not publish a game patch or claim universal success. [Scope, failure handling and rollback](rapid-workaround.md).
 
 ## Observed behavior
 

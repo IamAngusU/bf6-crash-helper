@@ -4,30 +4,43 @@
 
 <p align="center">
   <a href="docs/privacy.md"><img src="assets/badge-local.svg" height="36" alt="Local · no auto-upload"></a>
-  <a href="docs/recovery.md"><img src="assets/badge-undo.svg" height="36" alt="Cache backup + undo"></a>
+  <a href="docs/rapid-workaround.md"><img src="assets/badge-undo.svg" height="36" alt="Verified backups + undo"></a>
   <a href="LICENSE"><img src="assets/badge-mit.svg" height="36" alt="MIT license"></a>
 </p>
 
-Battlefield closes while you join a round. BF6 Crash Helper helps you collect useful evidence and try a reversible game-cache reset, with a separate choice for every action.
+Battlefield closes while you join Rapid Royale. **BF6 Crash Helper** offers a build-specific, reversible Mirak Valley workaround, alongside local diagnostics. Every change needs your explicit choice.
 
-**The current Rapid Royale loading crash is not fixed by this tool.** A successful round after a cache reset does not establish a fix. [What the investigation actually found](docs/case-evidence.md).
+**Experimental, not a confirmed universal fix.** Several joins worked on the investigated PC after the two-file workaround. The official update alone had still crashed with the same signature. Direct proof of the base-map fallback and broader testing remain incomplete. [Evidence and limits](docs/case-evidence.md) · [Exact changes and rollback](docs/rapid-workaround.md).
 
 ## Quick start
 
-<a href="https://github.com/IamAngusU/bf6-crash-helper/releases/latest"><img src="assets/badge-download.svg" height="42" alt="Download for Windows"></a>
+<a href="https://github.com/IamAngusU/bf6-crash-helper/releases/tag/v0.2.0"><img src="assets/badge-download.svg" height="42" alt="Download for Windows"></a>
 
-1. Open the [latest release](https://github.com/IamAngusU/bf6-crash-helper/releases/latest) and download **BF6CrashHelper.exe**.
-2. Double-click the downloaded file. No installer, account, terminal command or PowerShell script is needed.
-3. Read the scan explanation, tick its consent box and click **Run check**. Opening the app does not scan or change your PC.
-4. Review the results. Export a report only when you choose to save one.
+**One line in PowerShell, with no Git, Python, Node or package manager:**
+
+```powershell
+& { $ErrorActionPreference='Stop'; $p=Join-Path $env:TEMP ('BF6CrashHelper-'+[guid]::NewGuid().ToString('N')+'.exe'); Invoke-WebRequest -UseBasicParsing 'https://github.com/IamAngusU/bf6-crash-helper/releases/download/v0.2.0/BF6CrashHelper.exe' -OutFile $p; if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash -ne '0e1732ab102e50608b2909d7c0ba98c34309a07124b7fbea5170797f364b72de'){throw 'SHA-256 mismatch; do not run this download.'}; Start-Process -FilePath $p }
+```
+
+This downloads **v0.2.0**, checks its pinned SHA-256 and opens the app. It does **not** apply a workaround, request administrator rights or disable PowerShell/Windows protection. Review [the readable launcher](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/start.ps1), [the workaround code](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/src/MirakRecovery.cs) and [the elevation worker](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/src/MirakWorker.cs) **before running it**. A matching hash establishes which release you downloaded, not that code is safe.
+
+Prefer a normal download? Open [v0.2.0](https://github.com/IamAngusU/bf6-crash-helper/releases/tag/v0.2.0), download **BF6CrashHelper.exe**, and double-click it.
+
+1. Close Battlefield normally. In **Rapid Royale**, choose **Check compatibility**.
+2. Read the exact scope and backup location. The initial release of this workaround only supports **Steam build 25851446**, with matching original EXE, layout, base-map and two SAN2 index hashes, on a local NTFS library.
+3. Tick the unchecked consent box and choose **Back up and apply workaround**. Only this explicit choice opens the administrator prompt. Use the same Windows account for elevation.
+4. Test several relevant Rapid joins. If it does not help, close BF6, reopen the helper, and choose **Undo workaround / recover interruption** with its separate consent.
+
+Opening the app performs no game scan, modification or upload. Reading its own local recovery/capture history makes interrupted operations reachable again. Steam verification may re-download the two optional indexes; check compatibility again rather than forcing a new build.
 
 For Windows 10/11 (x64) with .NET Framework 4.8 available. No separate runtime is needed on a current supported Windows installation. The release executable is unsigned: if Windows shows SmartScreen, review the publisher/source and file before deciding whether to open it. Keep Windows protection enabled.
 
-Ordinary scans run without administrator rights. The optional Windows file trace has its own explanation, confirmation and administrator prompt.
+Ordinary scans run without administrator rights. The Rapid workaround and its undo need permission to change the two Steam files; the separate Windows file trace has its own consent and administrator prompt.
 
 ## Choose the next step
 
 - **Scan:** inspect installation and existing crash metadata, plus selected files against available local Steam manifests. This is a targeted check, not a full Steam verification.
+- **Rapid workaround:** verify the exact supported build, durably back up both optional SAN2 Mirak indexes before removing either original, and retain recovery history. Unknown builds, changed files, linked paths and a running game stop the operation. Undo preserves backups and refuses to overwrite changed originals. [Failure and update behavior](docs/rapid-workaround.md).
 - **Save a report:** create a local, sanitized summary you can review before sharing. Nothing is uploaded automatically.
 - **Try a cache reset:** close Battlefield first, explicitly confirm the test, and retain the previous cache as a backup. Steam may stay open. Undo preserves any rebuilt cache too.
 - **Start Steam verification:** an additional OK/Cancel dialog explains that Steam may download original files again. Only confirming starts it; the helper cannot undo Steam's changes.
@@ -47,7 +60,7 @@ Rapid Royale is part of free REDSEC. Buying Battlefield 6 is not a proposed fix.
 
 Report reproducible behavior through [GitHub Issues](https://github.com/IamAngusU/bf6-crash-helper/issues). Include the game build, map/mode, loading stage and a reviewed summary. Keep raw dumps, traces, account data and game binaries private. Existing crash signatures are specific to a binary version; an unknown result is useful and must stay unknown.
 
-Developers can reproduce the local checks on Windows with `./build.ps1 -Test`. The suite uses synthetic dumps and temporary cache fixtures; it does not change a real game installation or start an ETW recording. Players only need the release executable.
+Developers can run `./build.ps1 -Test` on Windows. Tests use synthetic dumps and temporary cache/Steam-library fixtures: interruption, corrupted or missing backup, current-file conflicts, updates, locks, path links, long paths, stale consent and request validation. They do not modify a real installation, approve UAC or start ETW. Players only need the release executable. [Verification details](docs/rapid-workaround.md#verification).
 
 ---
 

@@ -39,6 +39,8 @@ For an entitlement check, use Steam's own DLC list and the game's content-manage
 
 ## Local recovery data
 
+The separately confirmed Rapid Royale workaround stores its exact installation path, build, transaction state, two original index files and local elevation requests/receipts in `%LOCALAPPDATA%\BF6CrashHelper\mirak-v1`. These stay outside report export and are never uploaded automatically. The two indexes are game data; do not attach these backups to public issues. The workaround and undo only request administrator permission after their own explicit UI consent. [Exact scope and recovery](rapid-workaround.md).
+
 A cache test writes a local recovery journal and keeps the old cache beside its original location. Undo can keep the newly rebuilt cache in another sibling directory. These records contain real local paths because recovery must identify the exact files; they are not part of the public report. [Recovery details](recovery.md).
 
 Deleting the portable executable does not delete your backups or traces. Keep them until you have checked the result and no longer need recovery.

@@ -16,6 +16,7 @@ namespace Bf6CrashHelper
         {
             try
             {
+                if (args.Length == 2 && args[0] == "--preview") { RenderPreview(args[1]); return 0; }
                 Run("cache reset and undo preserve both generations", ResetUndo);
                 Run("repeated experiments undo in order", RepeatUndo);
                 Run("modified backup stops undo without touching current data", ChangedBackup);
@@ -24,11 +25,12 @@ namespace Bf6CrashHelper
                 Run("interrupted undo reconciles", InterruptedUndo);
                 Run("running game guard runs before writes", Guard);
                 Run("all initial consents are off", ConsentDefaults);
+                Run("Mirak actions require the corresponding reviewed plan and consent", MirakConsentGates);
                 Run("a recovered recording can be stopped or cleaned up", CaptureControls);
                 Assert(global::DiagnosticsTests.Main() == 0, "Diagnostic tests failed.");
                 global::TraceRecorderTests.RunAll();
+                global::MirakTests.RunAll();
                 Console.WriteLine("PASS: " + count + " recovery/UI checks plus diagnostic checks.");
-                if (args.Length == 2 && args[0] == "--preview") RenderPreview(args[1]);
                 return 0;
             }
             catch (Exception e) { Console.Error.WriteLine(e.ToString()); return 1; }
@@ -51,7 +53,7 @@ namespace Bf6CrashHelper
         static void InterruptedBackup() { using (var f = new Fixture()) { var r = f.Recovery.Reset(); Directory.Move(f.Cache, Path.Combine(f.Root, "new-cache-held")); r.State = "BackedUp"; f.Journal(r); f.Recovery.Undo(); Assert(File.Exists(Path.Combine(f.Cache, "original")), "Interrupted backup not recovered"); } }
         static void InterruptedUndo() { using (var f = new Fixture()) { f.Recovery.Reset(); var r = f.Recovery.Undo(); r.State = "UndoPending"; f.Journal(r); f.Recovery.Undo(); Assert(File.Exists(Path.Combine(f.Cache, "original")), "Interrupted undo not recovered"); Assert(f.Recovery.Latest() == null, "Journal not reconciled"); } }
         static void Guard() { using (var f = new Fixture()) { var r = new Recovery(f.Cache, f.State, delegate { throw new IOException("game is active"); }); Throws(delegate { r.Reset(); }); Assert(File.Exists(Path.Combine(f.Cache, "original")) && !Directory.Exists(f.State), "Writes before guard"); } }
-        static void ConsentDefaults() { using (var form = new MainForm()) { foreach (string n in new [] { "scanConsent", "traceConsent", "cacheConsent", "undoConsent" }) { var c = (CheckBox)typeof(MainForm).GetField(n, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form); Assert(!c.Checked, "Consent preselected: " + n); } foreach (string n in new [] { "scan", "traceStart", "reset", "undo", "export" }) { var b = (Button)typeof(MainForm).GetField(n, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form); Assert(!b.Enabled, "Action initially enabled: " + n); } } }
+        static void ConsentDefaults() { using (var form = new MainForm()) { foreach (string n in new [] { "scanConsent", "traceConsent", "cacheConsent", "undoConsent", "mirakConsent", "mirakUndoConsent" }) { var c = (CheckBox)typeof(MainForm).GetField(n, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form); Assert(!c.Checked, "Consent preselected: " + n); } foreach (string n in new [] { "scan", "traceStart", "reset", "undo", "export", "mirakApply", "mirakUndo" }) { var b = (Button)typeof(MainForm).GetField(n, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form); Assert(!b.Enabled, "Action initially enabled: " + n); } } }
         static void CaptureControls()
         {
             using (var form = new MainForm())
@@ -70,6 +72,29 @@ namespace Bf6CrashHelper
                 Assert(!stop.Enabled && field.GetValue(form) == null, "Finished recording was not released");
             }
         }
+        static void MirakConsentGates()
+        {
+            using (var form = new MainForm())
+            {
+                var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+                var plan = typeof(MainForm).GetField("mirakPlan", flags);
+                var applyConsent = (CheckBox)typeof(MainForm).GetField("mirakConsent", flags).GetValue(form);
+                var undoConsent = (CheckBox)typeof(MainForm).GetField("mirakUndoConsent", flags).GetValue(form);
+                var apply = (Button)typeof(MainForm).GetField("mirakApply", flags).GetValue(form);
+                var undo = (Button)typeof(MainForm).GetField("mirakUndo", flags).GetValue(form);
+                applyConsent.Checked = undoConsent.Checked = true;
+                Assert(!apply.Enabled && !undo.Enabled, "Consent alone enabled a change without review");
+                plan.SetValue(form, new MirakPlan { CanApply = true });
+                typeof(MainForm).GetMethod("UpdateMirakButtons", flags).Invoke(form, null);
+                Assert(apply.Enabled && !undo.Enabled, "Apply review authorized an Undo");
+                typeof(MainForm).GetMethod("SetBusy", flags).Invoke(form, new object[] { true, null });
+                Assert(!apply.Enabled && !undo.Enabled, "Busy operation allowed a second mutation");
+                plan.SetValue(form, new MirakPlan { CanUndo = true });
+                typeof(MainForm).GetMethod("SetBusy", flags).Invoke(form, new object[] { false, null });
+                Assert(!apply.Enabled && undo.Enabled, "Undo review authorized an Apply");
+                undoConsent.Checked = false; Assert(!undo.Enabled, "Undo remained enabled without consent");
+            }
+        }
         static void RenderPreview(string directory)
         {
             Directory.CreateDirectory(directory);
@@ -78,7 +103,7 @@ namespace Bf6CrashHelper
             {
                 form.StartPosition = FormStartPosition.Manual; form.Location = new System.Drawing.Point(-30000, -30000); form.ShowInTaskbar = false; form.Show(); Application.DoEvents();
                 var tabs = (TabControl)typeof(MainForm).GetField("tabs", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(form);
-                for (int i = 0; i < tabs.TabPages.Count; i++) { tabs.SelectedIndex = i; Application.DoEvents(); using (var bitmap = new System.Drawing.Bitmap(form.Width, form.Height)) { form.DrawToBitmap(bitmap, new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height)); bitmap.Save(Path.Combine(directory, "preview-" + i + ".png")); } }
+                for (int i = 0; i < tabs.TabPages.Count; i++) { form.Height = i == 0 ? 1180 : 820; tabs.SelectedIndex = i; Application.DoEvents(); using (var bitmap = new System.Drawing.Bitmap(form.Width, form.Height)) { form.DrawToBitmap(bitmap, new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height)); bitmap.Save(Path.Combine(directory, "preview-" + i + ".png")); } }
                 form.Close();
             }
         }

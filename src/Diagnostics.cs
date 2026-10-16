@@ -94,6 +94,8 @@ namespace Bf6CrashHelper
         private const string AppId = "2807960";
         private const uint KnownPeTimestamp = 0x6abf2953;
         private const ulong KnownRva = 0x51ed625;
+        private const uint UpdatedPeTimestamp = 0x6ac83b64;
+        private const ulong UpdatedRva = 0x51ed885;
         private const int MaximumDumpCount = 24;
         private const int MaximumManifestBytes = 32 * 1024 * 1024;
         private const long MaximumTargetHashBytes = 1024L * 1024L * 1024L;
@@ -396,7 +398,8 @@ namespace Bf6CrashHelper
                     }
                 }
                 bool isBf6 = String.Equals(moduleName, "bf6.exe", StringComparison.OrdinalIgnoreCase);
-                bool known = isBf6 && timestamp == KnownPeTimestamp && offset == KnownRva && code == 0xc0000005 && parameters >= 2 && access == 0 && target == 0xa7;
+                bool knownBinary = (timestamp == KnownPeTimestamp && offset == KnownRva) || (timestamp == UpdatedPeTimestamp && offset == UpdatedRva);
+                bool known = isBf6 && knownBinary && code == 0xc0000005 && parameters >= 2 && access == 0 && target == 0xa7;
                 CrashEvidence result = new CrashEvidence();
                 uint unix = U32(header, 20);
                 result.Time = unix == 0 ? File.GetLastWriteTimeUtc(path).ToString("o", CultureInfo.InvariantCulture)
@@ -407,7 +410,7 @@ namespace Bf6CrashHelper
                 result.DumpName = Path.GetFileName(path);
                 result.KnownSignature = known;
                 result.Signature = known
-                    ? L("Bekannte gleiche Ladeabsturzsignatur (bf6.exe PE 0x6abf2953, RVA 0x51ed625, 0xc0000005, Lesen von 0xa7). Dies identifiziert das Muster, nicht dessen Ursache oder eine CAS-Kennung.", "Known matching loading-crash signature (bf6.exe PE 0x6abf2953, RVA 0x51ed625, 0xc0000005, read from 0xa7). This identifies the pattern, not its cause or a CAS identifier.")
+                    ? L("Bekannte Ladeabsturzsignatur: bf6.exe PE 0x", "Known loading-crash signature: bf6.exe PE 0x") + timestamp.ToString("x", CultureInfo.InvariantCulture) + ", RVA 0x" + offset.ToString("x", CultureInfo.InvariantCulture) + L(", 0xc0000005, Lesen von 0xa7. Muster erkannt; Ursache und Fix bleiben unbewiesen.", ", 0xc0000005, read from 0xa7. Pattern identified; cause and fix remain unproven.")
                     : L("Keine vollständige Übereinstimmung mit der bekannten Build-spezifischen Signatur; keine Ursachenbehauptung aus festen Offsets.", "No full match for the known build-specific signature; no cause is inferred from fixed offsets.");
                 result.CasRequestStatus = L("Für diese Signatur nicht ausgewertet.", "Not evaluated for this signature.");
                 if (known)
@@ -751,7 +754,7 @@ namespace Bf6CrashHelper
             return libraries;
         }
 
-        private sealed class VdfNode
+        internal sealed class VdfNode
         {
             internal Dictionary<string, string> Values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             internal Dictionary<string, VdfNode> Children = new Dictionary<string, VdfNode>(StringComparer.OrdinalIgnoreCase);
@@ -759,7 +762,7 @@ namespace Bf6CrashHelper
             internal VdfNode Child(string key) { VdfNode value; return Children.TryGetValue(key, out value) ? value : new VdfNode(); }
         }
 
-        private static VdfNode ReadVdf(string path)
+        internal static VdfNode ReadVdf(string path)
         {
             string text = new UTF8Encoding(false, true).GetString(ReadBoundedFile(path, 1024 * 1024));
             int at = 0, tokens = 0;

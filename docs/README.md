@@ -4,6 +4,8 @@ Start with the [English quick start](../README.md#quick-start) or [deutsche Kurz
 
 - [Privacy and reports](privacy.md): what stays private, what a shareable summary can establish, and the separate trace option.
 - [Cache test and recovery](recovery.md): backup, undo and interrupted operations.
+- [Rapid Royale workaround](rapid-workaround.md): experimental two-file scope, exact build guards, consent and rollback through failures/updates.
+- [Forum post draft](forum-post.md): English and German text with source-review invitation and no universal-fix claim.
 - [The Rapid Royale case](case-evidence.md): anonymized findings, exact version limits and source links.
 - [Deeper analysis](deeper-analysis.md): REA's practical role, Windows dump limits and what additional evidence could answer.
 

@@ -1,9 +1,13 @@
 Download **BF6CrashHelper.exe** and open it on Windows 10/11 with .NET Framework 4.8. No installer, account, terminal or extra runtime is needed on supported Windows installations.
 
-This first release offers local crash/installation checks, a previewable sanitized report, an opt-in cache experiment with backup and undo, and a separately confirmed private Windows file trace. Every action starts only after you choose it.
+Version 0.2.0 adds an **experimental Rapid Royale / Mirak Valley workaround** for the exact reviewed Steam build 25851446, with independent Apply/Undo consent, administrator permission only after that choice, durable verified backups and recovery through interrupted operations. Unknown builds, changed guards, linked paths and a running game are refused. Updates and changed originals are preserved rather than overwritten with old files.
 
-**The investigated Rapid Royale crash is not fixed by this release.** It is not a licence bypass or a game patch. The tool helps distinguish verified file integrity, matching crash evidence and unresolved hypotheses.
+**Not a confirmed universal fix.** Several successful joins were reported on the original PC after the two-file change, including play the next day. The official update alone still crashed in the unchanged baseline. Direct proof of successful base-map fallback and broader testing remain incomplete. [Exact scope and rollback](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/docs/rapid-workaround.md).
 
-The executable is unsigned. Review the source and SHA256SUMS.txt. When built by the release workflow, the executable also has GitHub build provenance; check each release's verification note. Keep Windows protection enabled.
+The version-pinned PowerShell one-liner in the [README](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/README.md#quick-start) verifies SHA-256 and opens the GUI; it does not apply a change. No Git/Python/Node/package manager is needed. Please inspect the source before execution, including [recovery](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/src/MirakRecovery.cs), [worker](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/src/MirakWorker.cs), and [launcher](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/start.ps1). Local diagnostics, shareable report preview, cache recovery and optional private tracing remain available.
+
+The executable is unsigned. Review the source and SHA256SUMS.txt. **This release was built and tested locally on Windows. Hosted CI was unavailable for this release; no GitHub build attestation is supplied.** Keep Windows protection enabled. Rebuilding with the legacy Framework compiler need not reproduce identical binary bytes; the pinned hash identifies this published artifact.
+
+Local verification: **96 workaround assertions across 22 failure/recovery scenarios**, **58 synthetic diagnostic assertions**, **32 recorder assertions**, and **10 cache/UI scenarios**, including consent gates. Tests do not modify a real game installation, approve UAC or start ETW. The game outcome remains an experiment, not a test-suite guarantee.
 
 [Documentation](https://github.com/IamAngusU/bf6-crash-helper/tree/main/docs) · [Deutsch](https://github.com/IamAngusU/bf6-crash-helper/blob/main/README.de.md) · Author [IamAngusU](https://github.com/IamAngusU)

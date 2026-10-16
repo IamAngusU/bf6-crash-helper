@@ -14,7 +14,7 @@ using System.Windows.Forms;
 [assembly: AssemblyCompany("IamAngusU")]
 [assembly: AssemblyProduct("BF6 Crash Helper")]
 [assembly: AssemblyCopyright("Copyright © 2026 IamAngusU")]
-[assembly: AssemblyVersion("0.2.0.0")]
+[assembly: AssemblyVersion("0.3.0.0")]
 
 namespace Bf6CrashHelper
 {
@@ -23,6 +23,7 @@ namespace Bf6CrashHelper
         [STAThread]
         static void Main(string[] args)
         {
+            UiLanguage.Set(false);
             if (MirakWorker.HandleWorker(args) || TraceRecorder.HandleWorker(args)) return;
             if (args.Length != 0) { MessageBox.Show("Start BF6 Crash Helper without command-line arguments."); return; }
             bool first;
@@ -36,7 +37,7 @@ namespace Bf6CrashHelper
         }
     }
 
-    public sealed class MainForm : Form
+    public sealed class ToolsForm : Form
     {
         const string Repository = "https://github.com/IamAngusU/bf6-crash-helper";
         readonly bool german = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "de";
@@ -62,9 +63,9 @@ namespace Bf6CrashHelper
 
         string L(string de, string en) { return german ? de : en; }
 
-        public MainForm()
+        public ToolsForm()
         {
-            Text = "BF6 Crash Helper";
+            Text = L("BF6 Crash Helper · Weitere Werkzeuge", "BF6 Crash Helper · More tools");
             Size = new Size(1050, 820); MinimumSize = new Size(940, 730);
             StartPosition = FormStartPosition.CenterScreen;
             Font = new Font("Segoe UI", 10); ForeColor = ink; BackColor = Color.FromArgb(239, 244, 248);
@@ -92,6 +93,7 @@ namespace Bf6CrashHelper
             RefreshRecovery(); RefreshMirak();
             captureDirectory = TraceRecorder.FindPendingRun();
             RefreshCapture();
+            tabs.SelectedIndex = 1;
         }
 
         TabPage Page(string name) { var p = new TabPage(name) { BackColor = Color.White, Padding = new Padding(22) }; tabs.TabPages.Add(p); return p; }
@@ -183,7 +185,7 @@ namespace Bf6CrashHelper
             ConfigureButton(mirakUndo, L("Workaround rückgängig / Vorgang wiederherstellen", "Undo workaround / recover interruption"), delegate { MirakChange(true); }); mirakUndo.Enabled = false; flow.Controls.Add(mirakUndo);
             mirakConsent.CheckedChanged += delegate { UpdateMirakButtons(); }; mirakUndoConsent.CheckedChanged += delegate { UpdateMirakButtons(); };
             var links = new FlowLayoutPanel { Width = 850, Height = 60 };
-            var source = new Button(); ConfigureButton(source, L("Quellcode und genaue Änderungen", "Source and exact changes"), delegate { Open(Repository + "/blob/v0.2.0/docs/rapid-workaround.md"); }); links.Controls.Add(source);
+            var source = new Button(); ConfigureButton(source, L("Quellcode und genaue Änderungen", "Source and exact changes"), delegate { Open(Repository + "/blob/v0.3.0/docs/rapid-workaround.md"); }); links.Controls.Add(source);
             var backups = new Button(); ConfigureButton(backups, L("Lokale Sicherungen öffnen", "Open local backups"), delegate { if (Directory.Exists(mirak.BackupRoot)) Open(mirak.BackupRoot); else MessageBox.Show(this, L("Noch keine Sicherung vorhanden.", "No backup exists yet.")); }); links.Controls.Add(backups); flow.Controls.Add(links);
         }
         async void MirakCheckClicked(object sender, EventArgs e)
@@ -312,7 +314,7 @@ namespace Bf6CrashHelper
 
         object Shareable()
         {
-            return new { tool = "BF6 Crash Helper", version = "0.2.0", author = "IamAngusU", repository = Repository,
+            return new { tool = "BF6 Crash Helper", version = "0.3.0", author = "IamAngusU", repository = Repository,
                 createdUtc = DateTime.UtcNow.ToString("o"), userReportedContext = new {
                     mode = new [] { "unknown", "Battle Royale", "Rapid Royale Solo", "Rapid Royale Trios", "other" }[mode.SelectedIndex],
                     map = new [] { "unknown", "Fort Lyndon", "Mirak Valley", "Vegas Strip", "other" }[map.SelectedIndex],

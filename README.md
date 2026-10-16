@@ -14,28 +14,32 @@ Battlefield closes while you join Rapid Royale. **BF6 Crash Helper** offers a bu
 
 ## Quick start
 
-<a href="https://github.com/IamAngusU/bf6-crash-helper/releases/tag/v0.2.0"><img src="assets/badge-download.svg" height="42" alt="Download for Windows"></a>
+One compact window, inspired by the author's [Gaze Lab interface](https://github.com/IamAngusU/CS2GazeLab/blob/main/Licensing/LicenseGateWindow.xaml). **English is the default**, with a live **Deutsch** switch. Compatibility, explicit consent and Apply/Undo stay in the same surface. Optional diagnostics are behind **More tools**.
+
+<img src="assets/rapid-workaround.png" width="564" alt="Compact English window: compatibility check, explained opt-in and disabled Apply button before review. Language can be switched to German.">
+
+<a href="https://github.com/IamAngusU/bf6-crash-helper/releases/tag/v0.3.0"><img src="assets/badge-download.svg" height="42" alt="Download for Windows"></a>
 
 **One line in PowerShell, with no Git, Python, Node or package manager:**
 
 ```powershell
-& { $ErrorActionPreference='Stop'; $p=Join-Path $env:TEMP ('BF6CrashHelper-'+[guid]::NewGuid().ToString('N')+'.exe'); Invoke-WebRequest -UseBasicParsing 'https://github.com/IamAngusU/bf6-crash-helper/releases/download/v0.2.0/BF6CrashHelper.exe' -OutFile $p; if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash -ne '0e1732ab102e50608b2909d7c0ba98c34309a07124b7fbea5170797f364b72de'){throw 'SHA-256 mismatch; do not run this download.'}; Start-Process -FilePath $p }
+& { $ErrorActionPreference='Stop'; $p=Join-Path $env:TEMP ('BF6CrashHelper-'+[guid]::NewGuid().ToString('N')+'.exe'); Invoke-WebRequest -UseBasicParsing 'https://github.com/IamAngusU/bf6-crash-helper/releases/download/v0.3.0/BF6CrashHelper.exe' -OutFile $p; if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash -ne '308dc04afd412e512b1ad2fae7f010bad5dc40c559946e0b51a5bb0f9a2322fd'){throw 'SHA-256 mismatch; do not run this download.'}; Start-Process -FilePath $p }
 ```
 
-This downloads **v0.2.0**, checks its pinned SHA-256 and opens the app. It does **not** apply a workaround, request administrator rights or disable PowerShell/Windows protection. Review [the readable launcher](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/start.ps1), [the workaround code](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/src/MirakRecovery.cs) and [the elevation worker](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/src/MirakWorker.cs) **before running it**. A matching hash establishes which release you downloaded, not that code is safe.
+This downloads **v0.3.0**, checks its pinned SHA-256 and opens the app. It does **not** apply a workaround, request administrator rights or disable PowerShell/Windows protection. Review [the readable launcher](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.3.0/start.ps1), [the workaround code](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.3.0/src/MirakRecovery.cs) and [the elevation worker](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.3.0/src/MirakWorker.cs) **before running it**. A matching hash establishes which release you downloaded, not that code is safe.
 
-Prefer a normal download? Open [v0.2.0](https://github.com/IamAngusU/bf6-crash-helper/releases/tag/v0.2.0), download **BF6CrashHelper.exe**, and double-click it.
+Prefer a normal download? Open [v0.3.0](https://github.com/IamAngusU/bf6-crash-helper/releases/tag/v0.3.0), download **BF6CrashHelper.exe**, and double-click it.
 
-1. Close Battlefield normally. In **Rapid Royale**, choose **Check compatibility**.
+1. Close Battlefield normally. Choose **Check compatibility**. The Steam folder is detected automatically; **Game folder …** lets you select it if needed.
 2. Read the exact scope and backup location. The initial release of this workaround only supports **Steam build 25851446**, with matching original EXE, layout, base-map and two SAN2 index hashes, on a local NTFS library.
 3. Tick the unchecked consent box and choose **Back up and apply workaround**. Only this explicit choice opens the administrator prompt. Use the same Windows account for elevation.
-4. Test several relevant Rapid joins. If it does not help, close BF6, reopen the helper, and choose **Undo workaround / recover interruption** with its separate consent.
+4. Test several relevant Rapid joins. If it does not help, close BF6 and reopen the helper. Its recorded change brings **Undo workaround** into the same action area, with separate, unchecked consent. Interrupted operations use this recovery path too.
 
 Opening the app performs no game scan, modification or upload. Reading its own local recovery/capture history makes interrupted operations reachable again. Steam verification may re-download the two optional indexes; check compatibility again rather than forcing a new build.
 
 For Windows 10/11 (x64) with .NET Framework 4.8 available. No separate runtime is needed on a current supported Windows installation. The release executable is unsigned: if Windows shows SmartScreen, review the publisher/source and file before deciding whether to open it. Keep Windows protection enabled.
 
-Ordinary scans run without administrator rights. The Rapid workaround and its undo need permission to change the two Steam files; the separate Windows file trace has its own consent and administrator prompt.
+Ordinary scans run without administrator rights. The Rapid workaround and its undo need permission to change the two Steam files; the separate Windows file trace has its own consent and administrator prompt. **More tools** opens these optional diagnostics; opening it starts no scan, recording or change.
 
 ## Choose the next step
 

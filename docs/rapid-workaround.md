@@ -8,7 +8,9 @@ This packages a successful **single-PC experiment**, not a proven universal fix.
 
 The app defaults to no changes. **Check compatibility** is a read-only action. The separate Apply checkbox/button explains the operation before the Windows elevation prompt. Reopening the same downloaded executable finds its recovery record; Undo has its own unchecked consent. No installer, login, Python, Git, package manager, driver, protection-setting change or scheduled task is needed for this workaround.
 
-<img src="../assets/rapid-workaround.png" width="800" alt="Rapid Royale page with separate compatibility, Apply consent and Undo consent controls. The window can be resized or scrolled.">
+<img src="../assets/rapid-workaround.png" width="564" alt="Compact English main window before compatibility review. Apply is disabled and consent is unchecked.">
+
+Version 0.3 opens this compact surface in **English**, regardless of the Windows display language. Select **Deutsch** to switch the interface without restarting. A language change clears Apply/Undo consent so the newly translated explanation must be approved again. The optional **Game folder …** picker invalidates the reviewed plan and its consent; it cannot switch installations during a pending recovery. A recorded change or interrupted operation replaces Apply with **Undo workaround** in the same action area. **Details** shows paths and technical state; **More tools** contains the existing optional diagnostics.
 
 Only this exact two-file pair is removed from the game's loading path, after verified backups of **both** exist:
 

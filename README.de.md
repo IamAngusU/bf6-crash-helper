@@ -14,28 +14,32 @@ Battlefield schließt sich beim Rapid-Royale-Beitritt. **BF6 Crash Helper** biet
 
 ## Loslegen
 
-<a href="https://github.com/IamAngusU/bf6-crash-helper/releases/tag/v0.2.0"><img src="assets/badge-download.svg" height="42" alt="Für Windows herunterladen"></a>
+Ein kleines Fenster, gestaltet nach der [Gaze-Lab-Oberfläche des Autors](https://github.com/IamAngusU/CS2GazeLab/blob/main/Licensing/LicenseGateWindow.xaml). **Englisch ist voreingestellt**, oben kannst du direkt **Deutsch** wählen. Prüfen, Zustimmung und Anwenden/Rückgängig bleiben in derselben Ansicht. Optionale Diagnose liegt hinter **Weitere Werkzeuge**.
+
+<img src="assets/rapid-workaround-de.png" width="564" alt="Kompaktes deutsches Fenster: Kompatibilität prüfen, Erklärung und nicht vorausgewählte Zustimmung. Anwenden ist vor der Prüfung deaktiviert.">
+
+<a href="https://github.com/IamAngusU/bf6-crash-helper/releases/tag/v0.3.0"><img src="assets/badge-download.svg" height="42" alt="Für Windows herunterladen"></a>
 
 **Eine Zeile in PowerShell; kein Git, Python, Node oder Paketmanager nötig:**
 
 ```powershell
-& { $ErrorActionPreference='Stop'; $p=Join-Path $env:TEMP ('BF6CrashHelper-'+[guid]::NewGuid().ToString('N')+'.exe'); Invoke-WebRequest -UseBasicParsing 'https://github.com/IamAngusU/bf6-crash-helper/releases/download/v0.2.0/BF6CrashHelper.exe' -OutFile $p; if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash -ne '0e1732ab102e50608b2909d7c0ba98c34309a07124b7fbea5170797f364b72de'){throw 'SHA-256 mismatch; do not run this download.'}; Start-Process -FilePath $p }
+& { $ErrorActionPreference='Stop'; $p=Join-Path $env:TEMP ('BF6CrashHelper-'+[guid]::NewGuid().ToString('N')+'.exe'); Invoke-WebRequest -UseBasicParsing 'https://github.com/IamAngusU/bf6-crash-helper/releases/download/v0.3.0/BF6CrashHelper.exe' -OutFile $p; if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash -ne '308dc04afd412e512b1ad2fae7f010bad5dc40c559946e0b51a5bb0f9a2322fd'){throw 'SHA-256 mismatch; do not run this download.'}; Start-Process -FilePath $p }
 ```
 
-Die Zeile lädt **v0.2.0**, prüft den fest eingetragenen SHA-256 und öffnet die App. Sie wendet **keinen** Workaround an, fordert keine Administratorrechte an und schaltet keinen Windows-Schutz ab. Prüfe vor dem Ausführen gern den [lesbaren Starter](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/start.ps1), den [Änderungscode](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/src/MirakRecovery.cs) und den [Administrator-Worker](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.2.0/src/MirakWorker.cs). Der passende Hash bestätigt die konkrete Release-Datei, keine Unbedenklichkeit des Codes.
+Die Zeile lädt **v0.3.0**, prüft den fest eingetragenen SHA-256 und öffnet die App. Sie wendet **keinen** Workaround an, fordert keine Administratorrechte an und schaltet keinen Windows-Schutz ab. Prüfe vor dem Ausführen gern den [lesbaren Starter](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.3.0/start.ps1), den [Änderungscode](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.3.0/src/MirakRecovery.cs) und den [Administrator-Worker](https://github.com/IamAngusU/bf6-crash-helper/blob/v0.3.0/src/MirakWorker.cs). Der passende Hash bestätigt die konkrete Release-Datei, keine Unbedenklichkeit des Codes.
 
-Alternativ: [v0.2.0 öffnen](https://github.com/IamAngusU/bf6-crash-helper/releases/tag/v0.2.0), **BF6CrashHelper.exe** herunterladen und doppelklicken.
+Alternativ: [v0.3.0 öffnen](https://github.com/IamAngusU/bf6-crash-helper/releases/tag/v0.3.0), **BF6CrashHelper.exe** herunterladen und doppelklicken.
 
-1. BF6 regulär schließen. Unter **Rapid Royale** auf **Kompatibilität prüfen** klicken.
+1. BF6 regulär schließen und **Kompatibilität prüfen** wählen. Der Steam-Ordner wird automatisch gesucht; bei Bedarf kannst du ihn über **Spielordner …** auswählen.
 2. Erklärung und Sicherungsort lesen. Der erste Workaround unterstützt nur **Steam-Build 25851446** mit exakt passenden Hashes für EXE, Layout, Basiskarte und die zwei SAN2-Indizes sowie eine lokale NTFS-Bibliothek.
 3. Das nicht vorausgewählte Zustimmungsfeld aktivieren und **Sichern und Workaround anwenden** wählen. Erst dann öffnet sich die Administratorabfrage. Dafür dasselbe Windows-Konto verwenden.
-4. Mehrere relevante Rapid-Beitritte testen. Hilft es nicht: BF6 schließen, Helper erneut öffnen und mit eigener Zustimmung **Workaround rückgängig / Vorgang wiederherstellen** wählen.
+4. Mehrere relevante Rapid-Beitritte testen. Hilft es nicht: BF6 schließen und den Helper erneut öffnen. Bei einer gespeicherten Änderung erscheint **Workaround rückgängig machen** an derselben Stelle, mit eigener, nicht vorausgewählter Zustimmung. Auch unterbrochene Vorgänge lassen sich so wiederherstellen.
 
 Beim Öffnen gibt es keinen Spielscan, keine Änderung und keinen Upload. Die App liest ihre eigene lokale Wiederherstellungs-/Aufnahmehistorie, damit unterbrochene Vorgänge erreichbar bleiben. Steam-Dateiprüfung kann die beiden optionalen Indizes erneut herunterladen; danach erneut prüfen, keinen neuen Build erzwingen.
 
 Für Windows 10/11 mit vorhandenem .NET Framework 4.8. Auf einem aktuellen unterstützten Windows ist keine zusätzliche Laufzeitinstallation nötig. Die Release-Datei ist unsigniert: Falls SmartScreen erscheint, prüfe Herkunft und Datei, bevor du entscheidest, ob du sie öffnest. Lass den Windows-Schutz aktiviert.
 
-Normale Prüfungen brauchen keine Administratorrechte. Workaround und Rücknahme benötigen die Berechtigung für die zwei Steam-Dateien. Die separate Dateiaufzeichnung hat ihre eigene Zustimmung und Administratorabfrage.
+Normale Prüfungen brauchen keine Administratorrechte. Workaround und Rücknahme benötigen die Berechtigung für die zwei Steam-Dateien. Die separate Dateiaufzeichnung hat ihre eigene Zustimmung und Administratorabfrage. **Weitere Werkzeuge** öffnet die optionale Diagnose; dadurch startet weder eine Prüfung noch eine Aufzeichnung oder Änderung.
 
 ## Wähle den nächsten Schritt
 
